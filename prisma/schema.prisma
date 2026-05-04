@@ -1,8 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
 generator client {
   provider = "prisma-client"
   output   = "../src/generated/prisma"
@@ -10,4 +5,141 @@ generator client {
 
 datasource db {
   provider = "postgresql"
+}
+
+enum InstrumentType {
+  ETF
+  STOCK
+  CRYPTO
+}
+
+enum TradeSide {
+  LONG
+  SHORT
+}
+
+enum OptionType {
+  CALL
+  PUT
+}
+
+enum TradeSource {
+  MANUAL
+  TS_IMPORT
+}
+
+model Account {
+  id                   String    @id @default(uuid()) @db.Uuid
+  userId               String    @db.Uuid @map("user_id")
+  name                 String
+  broker               String
+  description          String?
+  isActive             Boolean   @default(true)  @map("is_active")
+  isMain               Boolean   @default(false) @map("is_main")
+  startingBalance      Decimal   @default(0) @map("starting_balance")      @db.Decimal(18,2)
+  commissionPerOption  Decimal   @default(0) @map("commission_per_option") @db.Decimal(18,2)
+  commissionPerStock   Decimal   @default(0) @map("commission_per_stock")  @db.Decimal(18,2)
+  optionAssignmentFee  Decimal   @default(0) @map("option_assignment_fee") @db.Decimal(18,2)
+  createdAt            DateTime  @default(now()) @map("created_at")
+  trades               Trade[]
+  goals                Goal[]
+  monthlySnapshots     MonthlySnapshot[]
+  @@map("accounts")
+}
+
+model Instrument {
+  id          String         @id @default(uuid()) @db.Uuid
+  userId      String         @db.Uuid @map("user_id")
+  ticker      String
+  name        String
+  type        InstrumentType
+  description String?
+  createdAt   DateTime       @default(now()) @map("created_at")
+  trades      Trade[]
+  @@map("instruments")
+}
+
+model Setup {
+  id          String       @id @default(uuid()) @db.Uuid
+  userId      String       @db.Uuid @map("user_id")
+  name        String
+  description String?
+  createdAt   DateTime     @default(now()) @map("created_at")
+  tradeSetups TradeSetup[]
+  @@map("setups")
+}
+
+model Trade {
+  id              String      @id @default(uuid()) @db.Uuid
+  userId          String      @db.Uuid  @map("user_id")
+  accountId       String      @db.Uuid  @map("account_id")
+  instrumentId    String?     @db.Uuid  @map("instrument_id")
+  name            String
+  ticker          String
+  symbol          String
+  side            TradeSide
+  quantity        Decimal     @db.Decimal(18,4)
+  entryPrice      Decimal     @map("entry_price")      @db.Decimal(18,4)
+  openDate        DateTime    @map("open_date")        @db.Date
+  source          TradeSource @default(MANUAL)
+  exitPrice       Decimal?    @map("exit_price")       @db.Decimal(18,4)
+  closeDate       DateTime?   @map("close_date")       @db.Date
+  projectedProfit Decimal?    @map("projected_profit") @db.Decimal(18,2)
+  netPnl          Decimal?    @map("net_pnl")          @db.Decimal(18,2)
+  notes           String?
+  optionType      OptionType? @map("option_type")
+  strike          Decimal?    @db.Decimal(18,2)
+  expiration      DateTime?   @db.Date
+  contractSize    Int?        @map("contract_size")
+  createdAt       DateTime    @default(now()) @map("created_at")
+  updatedAt       DateTime    @updatedAt      @map("updated_at")
+  account         Account     @relation(fields: [accountId],    references: [id])
+  instrument      Instrument? @relation(fields: [instrumentId], references: [id])
+  tradeSetups     TradeSetup[]
+  @@map("trades")
+}
+
+model TradeSetup {
+  tradeId String @db.Uuid @map("trade_id")
+  setupId String @db.Uuid @map("setup_id")
+  trade   Trade  @relation(fields: [tradeId], references: [id], onDelete: Cascade)
+  setup   Setup  @relation(fields: [setupId], references: [id], onDelete: Cascade)
+  @@id([tradeId, setupId])
+  @@map("trade_setups")
+}
+
+model Goal {
+  id                   String   @id @default(uuid()) @db.Uuid
+  userId               String   @db.Uuid @map("user_id")
+  accountId            String   @db.Uuid @map("account_id")
+  year                 Int
+  goalAmount           Decimal  @map("goal_amount")             @db.Decimal(18,2)
+  curveFactor          Decimal  @map("curve_factor")            @db.Decimal(6,4)
+  monthlyFixedWd       Decimal  @default(0) @map("monthly_fixed_wd")          @db.Decimal(18,2)
+  monthlyVariableWdPct Decimal  @default(0) @map("monthly_variable_wd_pct")   @db.Decimal(6,4)
+  createdAt            DateTime @default(now()) @map("created_at")
+  account              Account  @relation(fields: [accountId], references: [id])
+  @@map("goals")
+}
+
+model MonthlySnapshot {
+  id              String   @id @default(uuid()) @db.Uuid
+  userId          String   @db.Uuid @map("user_id")
+  accountId       String   @db.Uuid @map("account_id")
+  year            Int
+  month           Int
+  startingBalance Decimal  @map("starting_balance") @db.Decimal(18,2)
+  endingBalance   Decimal  @map("ending_balance")   @db.Decimal(18,2)
+  createdAt       DateTime @default(now()) @map("created_at")
+  account         Account  @relation(fields: [accountId], references: [id])
+  @@map("monthly_snapshots")
+}
+
+model TradestationToken {
+  userId       String   @id @db.Uuid @map("user_id")
+  accessToken  String   @map("access_token")
+  refreshToken String   @map("refresh_token")
+  expiresAt    DateTime @map("expires_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+  @@map("tradestation_tokens")
 }
