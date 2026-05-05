@@ -222,6 +222,7 @@ export function TradesTable({ trades, variant, accounts, setups, instruments }: 
 
       {editTrade && (
         <TradeForm
+          key={editTrade.id}
           open={!!editTrade}
           onOpenChange={(o) => { if (!o) setEditTrade(null) }}
           accounts={accounts}

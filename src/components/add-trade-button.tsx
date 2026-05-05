@@ -15,7 +15,7 @@ export function AddTradeButton({ accounts, setups, instruments }: Props) {
   return (
     <>
       <Button onClick={() => setOpen(true)}>Add Trade</Button>
-      <TradeForm open={open} onOpenChange={setOpen} accounts={accounts} setups={setups} instruments={instruments} />
+      <TradeForm key={open ? 'open' : 'closed'} open={open} onOpenChange={setOpen} accounts={accounts} setups={setups} instruments={instruments} />
     </>
   )
 }
