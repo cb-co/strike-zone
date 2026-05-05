@@ -42,8 +42,9 @@ export function GoalCard({ goal }: { goal: GoalCardData }) {
   const actualPct = Math.min(1, actualYTD / goal.goalAmount)
   const expectedPct = Math.min(1, expectedYTD / goal.goalAmount)
 
-  const MONTHS = ['J','F','M','A','M','J','J','A','S','O','N','D']
+  const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
   const chartData = breakdown.map((b, i) => ({
+    idx: i,
     month: MONTHS[i],
     expected: b.expectedPnl,
     actual: goal.actualMonthlyPnl[i] ?? 0,
@@ -161,14 +162,15 @@ export function GoalCard({ goal }: { goal: GoalCardData }) {
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={chartData} margin={{ top: 4, right: 0, bottom: 0, left: 0 }} barGap={2} barCategoryGap="25%">
             <XAxis
-              dataKey="month"
+              dataKey="idx"
+              tickFormatter={(idx) => MONTHS[idx as number]}
               tick={{ fontSize: 9, fill: 'var(--muted-foreground)' }}
               tickLine={false}
               axisLine={false}
             />
             <ReferenceLine y={0} stroke="var(--border)" strokeWidth={1} />
-            <Bar dataKey="expected" fill="#9ca3af" opacity={0.45} radius={[2, 2, 0, 0]} />
-            <Bar dataKey="actual" fill="#3b82f6" radius={[2, 2, 0, 0]}>
+            <Bar dataKey="expected" name="Expected" fill="#9ca3af" opacity={0.45} radius={[2, 2, 0, 0]} />
+            <Bar dataKey="actual" name="Actual" fill="#3b82f6" radius={[2, 2, 0, 0]}>
               {chartData.map((d, i) => (
                 <Cell key={i} fill={d.actual >= 0 ? '#3b82f6' : '#ef4444'} />
               ))}
@@ -184,8 +186,8 @@ export function GoalCard({ goal }: { goal: GoalCardData }) {
               }}
               labelStyle={{ color: 'var(--muted-foreground)' }}
               itemStyle={{ color: 'var(--popover-foreground)' }}
-              formatter={(value, name) => [`$${Number(value).toFixed(0)}`, name === 'actual' ? 'Actual' : 'Expected']}
-              labelFormatter={(label) => label}
+              formatter={(value, name) => [`$${Number(value).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, name]}
+              labelFormatter={(idx) => MONTHS[idx as number]}
             />
           </BarChart>
         </ResponsiveContainer>
