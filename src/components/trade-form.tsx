@@ -56,9 +56,17 @@ export function TradeForm({ open, onOpenChange, accounts, setups, trade }: Props
   )
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [entryPrice, setEntryPrice] = useState<string>(String(trade?.entryPrice ?? ''))
+  const [quantity, setQuantity] = useState<string>(String(trade?.quantity ?? ''))
+  const [contractSize, setContractSize] = useState<string>(String(trade?.contractSize ?? 100))
 
   const isEditing = !!trade
-  const isOpen = !trade?.closeDate // true if trade is open (not yet closed)
+  const isOpen = !trade?.closeDate
+
+  const projectedProfit =
+    isOption && side === 'SHORT'
+      ? (parseFloat(entryPrice) || 0) * (parseFloat(quantity) || 0) * (parseFloat(contractSize) || 100)
+      : null
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -77,9 +85,13 @@ export function TradeForm({ open, onOpenChange, accounts, setups, trade }: Props
       fd.delete('contractSize')
     }
 
-    // Setups: clear existing and set selected
-    // We pass setupIds as a JSON string — the action will handle it
     fd.set('setupIds', JSON.stringify([...selectedSetups]))
+
+    if (projectedProfit !== null) {
+      fd.set('projectedProfit', String(projectedProfit))
+    } else {
+      fd.delete('projectedProfit')
+    }
 
     try {
       if (isEditing) {
@@ -158,11 +170,11 @@ export function TradeForm({ open, onOpenChange, accounts, setups, trade }: Props
           <div className="grid grid-cols-3 gap-3">
             <div className="space-y-1">
               <Label htmlFor="quantity">Qty</Label>
-              <Input id="quantity" name="quantity" type="number" step="any" defaultValue={String(trade?.quantity ?? '')} required />
+              <Input id="quantity" name="quantity" type="number" step="any" value={quantity} onChange={(e) => setQuantity(e.target.value)} required />
             </div>
             <div className="space-y-1">
               <Label htmlFor="entryPrice">Entry Price</Label>
-              <Input id="entryPrice" name="entryPrice" type="number" step="any" defaultValue={String(trade?.entryPrice ?? '')} required />
+              <Input id="entryPrice" name="entryPrice" type="number" step="any" value={entryPrice} onChange={(e) => setEntryPrice(e.target.value)} required />
             </div>
             <div className="space-y-1">
               <Label htmlFor="openDate">Open Date</Label>
@@ -196,7 +208,7 @@ export function TradeForm({ open, onOpenChange, accounts, setups, trade }: Props
                 </div>
                 <div className="space-y-1">
                   <Label htmlFor="contractSize">Contract Size</Label>
-                  <Input id="contractSize" name="contractSize" type="number" defaultValue={String(trade?.contractSize ?? 100)} />
+                  <Input id="contractSize" name="contractSize" type="number" value={contractSize} onChange={(e) => setContractSize(e.target.value)} />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-3">
@@ -212,13 +224,14 @@ export function TradeForm({ open, onOpenChange, accounts, setups, trade }: Props
             </div>
           )}
 
-          {/* Projected profit + Notes */}
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1">
-              <Label htmlFor="projectedProfit">Projected Profit</Label>
-              <Input id="projectedProfit" name="projectedProfit" type="number" step="any" defaultValue={String(trade?.projectedProfit ?? '')} />
+          {projectedProfit !== null && (
+            <div className="rounded-md border bg-muted/50 px-3 py-2 flex items-center justify-between text-sm">
+              <span className="text-muted-foreground">Projected profit (premium collected)</span>
+              <span className="font-mono font-medium">
+                ${projectedProfit.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </span>
             </div>
-          </div>
+          )}
           <div className="space-y-1">
             <Label htmlFor="notes">Notes</Label>
             <Input id="notes" name="notes" defaultValue={trade?.notes ?? ''} />
