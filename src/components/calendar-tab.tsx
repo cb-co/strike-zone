@@ -144,14 +144,18 @@ export function CalendarTab({ trades, month, year }: Props) {
                   <div
                     key={di}
                     className={cn(
-                      'h-28 p-2 flex flex-col',
+                      'h-28 p-2 flex flex-col gap-1 relative',
                       data
                         ? data.total >= 0
                           ? 'bg-green-50 dark:bg-green-950/20'
                           : 'bg-red-50 dark:bg-red-950/20'
-                        : 'bg-background hover:bg-muted/20 transition-colors'
+                        : 'bg-background'
                     )}
                   >
+                    {data && (
+                      <div className={cn('absolute left-0 inset-y-0 w-[3px]', data.total >= 0 ? 'bg-green-500' : 'bg-red-500')} />
+                    )}
+
                     {/* Day number */}
                     <div className="flex justify-end">
                       <span
@@ -166,18 +170,11 @@ export function CalendarTab({ trades, month, year }: Props) {
                       </span>
                     </div>
 
-                    {/* P&L */}
+                    {/* P&L — old style: stacked top-left */}
                     {data && (
-                      <div className="flex-1 flex flex-col justify-center items-center gap-0.5">
-                        <span
-                          className={cn(
-                            'text-sm font-semibold tabular-nums',
-                            data.total >= 0
-                              ? 'text-green-700 dark:text-green-400'
-                              : 'text-red-700 dark:text-red-400'
-                          )}
-                        >
-                          {data.total >= 0 ? '+' : '-'}${fmt(data.total)}
+                      <div className="pl-1 flex flex-col">
+                        <span className={cn('font-medium text-sm', data.total >= 0 ? 'text-green-700 dark:text-green-400' : 'text-red-700 dark:text-red-400')}>
+                          {data.total >= 0 ? '+' : ''}${Math.abs(data.total).toFixed(0)}
                         </span>
                         <span className="text-[10px] text-muted-foreground">
                           {data.count} trade{data.count !== 1 ? 's' : ''}
