@@ -44,43 +44,52 @@ export function Sidebar() {
   }
 
   return (
-    <aside className="w-56 shrink-0 border-r bg-sidebar flex flex-col h-full">
-      <div className="px-4 py-5 border-b">
-        <span className="font-semibold text-lg tracking-tight">Strike Zone</span>
+    <aside className="w-14 md:w-56 shrink-0 border-r bg-sidebar flex flex-col h-full">
+      {/* Logo */}
+      <div className="flex items-center px-3 md:px-4 py-5 border-b min-h-[64px]">
+        <span className="hidden md:block font-semibold text-lg tracking-tight">Strike Zone</span>
+        <HugeiconsIcon icon={ChartBarLineIcon} size={20} className="md:hidden text-sidebar-foreground" />
       </div>
+
+      {/* Nav */}
       <nav className="flex-1 overflow-y-auto py-4 px-2 space-y-1">
         {navItems.map(({ href, label, icon }) => (
           <Link
             key={href}
             href={href}
+            title={label}
             className={cn(
-              'flex items-center gap-2.5 px-3 py-2 rounded-md text-sm font-medium transition-colors',
+              'flex items-center gap-2.5 px-2 md:px-3 py-2 rounded-md text-sm font-medium transition-colors',
               pathname.startsWith(href)
                 ? 'bg-sidebar-accent text-sidebar-accent-foreground'
                 : 'text-sidebar-foreground hover:bg-sidebar-accent/50'
             )}
           >
-            <HugeiconsIcon icon={icon} size={18} />
-            {label}
+            <HugeiconsIcon icon={icon} size={18} className="shrink-0" />
+            <span className="hidden md:block">{label}</span>
           </Link>
         ))}
       </nav>
+
+      {/* Bottom actions */}
       <div className="p-2 border-t space-y-1">
         {mounted && (
           <button
             onClick={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')}
-            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-sm font-medium text-sidebar-foreground hover:bg-sidebar-accent/50 transition-colors"
+            title={resolvedTheme === 'dark' ? 'Light mode' : 'Dark mode'}
+            className="w-full flex items-center gap-2.5 px-2 md:px-3 py-2 rounded-md text-sm font-medium text-sidebar-foreground hover:bg-sidebar-accent/50 transition-colors"
           >
-            <HugeiconsIcon icon={resolvedTheme === 'dark' ? Sun01Icon : Moon01Icon} size={18} />
-            {resolvedTheme === 'dark' ? 'Light mode' : 'Dark mode'}
+            <HugeiconsIcon icon={resolvedTheme === 'dark' ? Sun01Icon : Moon01Icon} size={18} className="shrink-0" />
+            <span className="hidden md:block">{resolvedTheme === 'dark' ? 'Light mode' : 'Dark mode'}</span>
           </button>
         )}
         <button
           onClick={signOut}
-          className="w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-sm font-medium text-sidebar-foreground hover:bg-sidebar-accent/50 transition-colors"
+          title="Sign out"
+          className="w-full flex items-center gap-2.5 px-2 md:px-3 py-2 rounded-md text-sm font-medium text-sidebar-foreground hover:bg-sidebar-accent/50 transition-colors"
         >
-          <HugeiconsIcon icon={Logout01Icon} size={18} />
-          Sign out
+          <HugeiconsIcon icon={Logout01Icon} size={18} className="shrink-0" />
+          <span className="hidden md:block">Sign out</span>
         </button>
       </div>
     </aside>

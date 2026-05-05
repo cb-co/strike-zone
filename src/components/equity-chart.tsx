@@ -33,8 +33,8 @@ export function EquityChart({ data }: { data: EquityDataPoint[] }) {
       <AreaChart data={data} margin={{ top: 4, right: 4, bottom: 0, left: 0 }}>
         <defs>
           <linearGradient id="actualGrad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="5%" stopColor="var(--primary)" stopOpacity={0.3} />
-            <stop offset="95%" stopColor="var(--primary)" stopOpacity={0} />
+            <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.35} />
+            <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
           </linearGradient>
         </defs>
         <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
@@ -72,7 +72,7 @@ export function EquityChart({ data }: { data: EquityDataPoint[] }) {
         <Area
           type="monotone"
           dataKey="actual"
-          stroke="var(--primary)"
+          stroke="#3b82f6"
           strokeWidth={2}
           fill="url(#actualGrad)"
           name="Actual"

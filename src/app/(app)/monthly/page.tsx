@@ -101,7 +101,7 @@ export default async function MonthlyPage(props: { searchParams?: Promise<Record
       </div>
 
       {/* KPI cards */}
-      <div className="grid grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
         {[
           { label: 'Goal Amount', value: `$${g.goalAmount.toLocaleString()}` },
           { label: 'Actual YTD', value: `$${actualYTD.toFixed(2)}`, color: actualYTD >= 0 ? 'text-green-600' : 'text-red-600' },
@@ -122,6 +122,7 @@ export default async function MonthlyPage(props: { searchParams?: Promise<Record
             <tr>
               <th className="px-4 py-3 text-left font-medium">Month</th>
               <th className="px-4 py-3 text-right font-medium">Exp. P&L</th>
+              <th className="px-4 py-3 text-right font-medium">Exp. Fix WD</th>
               <th className="px-4 py-3 text-right font-medium">Exp. Var WD</th>
               <th className="px-4 py-3 text-right font-medium">Exp. Total</th>
               <th className="px-4 py-3 text-right font-medium">Actual P&L</th>
@@ -150,6 +151,7 @@ export default async function MonthlyPage(props: { searchParams?: Promise<Record
                 >
                   <td className="px-4 py-2.5 font-medium">{MONTH_NAMES[i]}</td>
                   <td className="px-4 py-2.5 text-right">${b.expectedPnl.toFixed(2)}</td>
+                  <td className="px-4 py-2.5 text-right">${g.monthlyFixedWd.toFixed(2)}</td>
                   <td className="px-4 py-2.5 text-right">${b.expectedVarWd.toFixed(2)}</td>
                   <td className="px-4 py-2.5 text-right">${b.expectedTotal.toFixed(2)}</td>
                   <td className="px-4 py-2.5 text-right">

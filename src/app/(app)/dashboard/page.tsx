@@ -122,11 +122,16 @@ export default async function DashboardPage() {
     }
   })
 
-  // Goal progress
+  // Goal progress — yearly
   const goalExpectedYTD = g ? expectedCumPnL(g, today) : 0
   const goalAmount = g?.goalAmount ?? 0
   const goalActualPct = goalAmount > 0 ? Math.min(1, ytdPnl / goalAmount) * 100 : 0
   const goalExpectedPct = goalAmount > 0 ? Math.min(1, goalExpectedYTD / goalAmount) * 100 : 0
+
+  // Goal progress — current month
+  const monthExpected = breakdown ? breakdown[currentMonth].expectedPnl : 0
+  const monthGap = monthlyPnl - monthExpected
+  const monthActualPct = monthExpected > 0 ? Math.min(1, monthlyPnl / monthExpected) * 100 : 0
 
   const kpis = [
     {
@@ -156,7 +161,7 @@ export default async function DashboardPage() {
       <h1 className="text-2xl font-semibold">Dashboard</h1>
 
       {/* KPI cards */}
-      <div className="grid grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
         {kpis.map(({ title, value, sub, color }) => (
           <Card key={title}>
             <CardHeader className="pb-1">
@@ -171,29 +176,64 @@ export default async function DashboardPage() {
       </div>
 
       {/* Chart row */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Equity chart */}
-        <div className="col-span-2 rounded-lg border p-4">
+        <div className="lg:col-span-2 rounded-lg border p-4">
           <h2 className="text-sm font-medium mb-3">Equity {currentYear}</h2>
           <EquityChart data={equityData} />
         </div>
 
-        {/* Goal progress + open positions */}
+        {/* Right column */}
         <div className="space-y-4">
-          {/* Goal progress */}
+          {/* Current month goal */}
+          {goal && breakdown ? (
+            <div className="rounded-lg border p-4 space-y-3">
+              <h2 className="text-sm font-medium">{MONTH_LABELS[currentMonth]} Goal</h2>
+              <div className="grid grid-cols-3 gap-2 text-center text-xs">
+                <div>
+                  <p className="text-muted-foreground">Actual</p>
+                  <p className={cn('font-semibold text-sm', monthlyPnl >= 0 ? 'text-green-600' : 'text-red-600')}>
+                    {monthlyPnl >= 0 ? '+' : ''}${fmt(monthlyPnl)}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Expected</p>
+                  <p className="font-semibold text-sm">${fmt(monthExpected)}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Gap</p>
+                  <p className={cn('font-semibold text-sm', monthGap >= 0 ? 'text-green-600' : 'text-red-600')}>
+                    {monthGap >= 0 ? '+' : ''}${fmt(monthGap)}
+                  </p>
+                </div>
+              </div>
+              {monthExpected > 0 && (
+                <div className="space-y-1 text-xs text-muted-foreground">
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1 bg-muted rounded-full h-1.5">
+                      <div className="bg-blue-500 h-1.5 rounded-full transition-all" style={{ width: `${Math.min(100, monthActualPct)}%` }} />
+                    </div>
+                    <span className="w-8 text-right">{monthActualPct.toFixed(0)}%</span>
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : null}
+
+          {/* Yearly goal progress */}
           {goal ? (
             <div className="rounded-lg border p-4 space-y-3">
-              <h2 className="text-sm font-medium">Goal Progress</h2>
+              <h2 className="text-sm font-medium">Year Goal</h2>
               <div className="space-y-2 text-xs text-muted-foreground">
                 <div className="flex items-center gap-2">
-                  <span className="w-16">Actual</span>
+                  <span className="w-16 shrink-0">Actual</span>
                   <div className="flex-1 bg-muted rounded-full h-2">
                     <div className="bg-green-500 h-2 rounded-full" style={{ width: `${goalActualPct}%` }} />
                   </div>
                   <span className="w-10 text-right">{goalActualPct.toFixed(0)}%</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="w-16">Expected</span>
+                  <span className="w-16 shrink-0">Expected</span>
                   <div className="flex-1 bg-muted rounded-full h-2">
                     <div className="bg-blue-400 h-2 rounded-full" style={{ width: `${goalExpectedPct}%` }} />
                   </div>
@@ -201,8 +241,8 @@ export default async function DashboardPage() {
                 </div>
               </div>
               <div className="text-xs text-muted-foreground flex justify-between">
-                <span>Actual: ${fmt(ytdPnl)}</span>
-                <span>Goal: ${goalAmount.toLocaleString()}</span>
+                <span>${fmt(ytdPnl)} of ${goalAmount.toLocaleString()}</span>
+                <Link href="/monthly" className="text-primary hover:underline">Details →</Link>
               </div>
             </div>
           ) : (
@@ -212,7 +252,7 @@ export default async function DashboardPage() {
             </div>
           )}
 
-          {/* Open positions mini-table */}
+          {/* Open positions */}
           <div className="rounded-lg border p-4 space-y-2">
             <h2 className="text-sm font-medium">Open Positions</h2>
             {openTrades.length === 0 ? (
@@ -220,7 +260,7 @@ export default async function DashboardPage() {
             ) : (
               <div className="space-y-1">
                 {openTrades.map((t, i) => (
-                  <div key={i} className="flex items-center justify-between text-xs">
+                  <div key={i} className="flex items-center justify-between text-xs gap-2">
                     <span className="font-mono font-medium">{t.ticker}</span>
                     <Badge variant={t.side === 'LONG' ? 'default' : 'secondary'} className="text-xs px-1 py-0">{t.side}</Badge>
                     <span className="text-muted-foreground">${Number(t.entryPrice).toFixed(2)}</span>
