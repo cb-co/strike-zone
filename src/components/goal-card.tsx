@@ -155,9 +155,16 @@ export function GoalCard({ goal }: { goal: GoalCardData }) {
       <div className="h-20">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={chartData} margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
-            <Bar dataKey="expected" fill="hsl(var(--muted-foreground))" opacity={0.4} radius={[2, 2, 0, 0]} />
-            <Bar dataKey="actual" fill="hsl(var(--primary))" radius={[2, 2, 0, 0]} />
+            <Bar dataKey="expected" fill="var(--muted-foreground)" opacity={0.4} radius={[2, 2, 0, 0]} />
+            <Bar dataKey="actual" fill="var(--primary)" radius={[2, 2, 0, 0]} />
             <Tooltip
+              contentStyle={{
+                backgroundColor: 'var(--popover)',
+                borderColor: 'var(--border)',
+                color: 'var(--popover-foreground)',
+                borderRadius: '6px',
+                fontSize: '12px',
+              }}
               formatter={(value, name) => [`$${Number(value).toFixed(0)}`, name === 'actual' ? 'Actual' : 'Expected']}
               labelFormatter={(label) => `Month ${label}`}
             />

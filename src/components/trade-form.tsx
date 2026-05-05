@@ -335,7 +335,7 @@ export function TradeForm({ open, onOpenChange, accounts, setups, instruments, t
                 </div>
                 <div className="space-y-1">
                   <Label htmlFor="closeDate">Close Date</Label>
-                  <Input id="closeDate" name="closeDate" type="date" defaultValue={toDateInput(trade?.closeDate)} />
+                  <Input id="closeDate" name="closeDate" type="date" defaultValue={toDateInput(trade?.closeDate) || today()} />
                 </div>
               </div>
             </div>
