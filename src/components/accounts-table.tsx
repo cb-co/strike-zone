@@ -7,8 +7,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { createAccount, updateAccount, deleteAccount, setMainAccount } from '@/actions/accounts'
-import type { Prisma } from '@/generated/prisma/client'
-
 type Account = {
   id: string
   name: string
@@ -16,11 +14,11 @@ type Account = {
   description: string | null
   isActive: boolean
   isMain: boolean
-  startingBalance: Prisma.Decimal
+  startingBalance: number
   currentBalance: number
-  commissionPerOption: Prisma.Decimal
-  commissionPerStock: Prisma.Decimal
-  optionAssignmentFee: Prisma.Decimal
+  commissionPerOption: number
+  commissionPerStock: number
+  optionAssignmentFee: number
 }
 
 function AccountForm({ account, onDone }: { account?: Account; onDone: () => void }) {
@@ -46,15 +44,33 @@ function AccountForm({ account, onDone }: { account?: Account; onDone: () => voi
       </div>
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-1">
-          <Label htmlFor="startingBalance">Starting Balance</Label>
-          <Input
-            id="startingBalance"
-            name="startingBalance"
-            type="number"
-            step="0.01"
-            defaultValue={String(account?.startingBalance ?? 0)}
-          />
+          <Label htmlFor="startingBalance">Starting Balance ($)</Label>
+          <Input id="startingBalance" name="startingBalance" type="number" step="0.01" defaultValue={String(account?.startingBalance ?? 0)} />
         </div>
+        <div className="space-y-1">
+          <Label htmlFor="commissionPerOption">Commission / Option ($)</Label>
+          <Input id="commissionPerOption" name="commissionPerOption" type="number" step="0.01" defaultValue={String(account?.commissionPerOption ?? 0)} />
+        </div>
+      </div>
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-1">
+          <Label htmlFor="commissionPerStock">Commission / Stock ($)</Label>
+          <Input id="commissionPerStock" name="commissionPerStock" type="number" step="0.01" defaultValue={String(account?.commissionPerStock ?? 0)} />
+        </div>
+        <div className="space-y-1">
+          <Label htmlFor="optionAssignmentFee">Option Assignment Fee ($)</Label>
+          <Input id="optionAssignmentFee" name="optionAssignmentFee" type="number" step="0.01" defaultValue={String(account?.optionAssignmentFee ?? 0)} />
+        </div>
+      </div>
+      <div className="flex items-center gap-6">
+        <label className="flex items-center gap-2 text-sm cursor-pointer">
+          <input type="checkbox" name="isMain" value="true" defaultChecked={account?.isMain} className="rounded" />
+          Set as main account
+        </label>
+        <label className="flex items-center gap-2 text-sm cursor-pointer">
+          <input type="checkbox" name="isActive" value="true" defaultChecked={account?.isActive ?? true} className="rounded" />
+          Active
+        </label>
       </div>
       <div className="flex justify-end gap-2">
         <Button type="button" variant="outline" onClick={onDone}>Cancel</Button>

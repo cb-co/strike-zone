@@ -20,7 +20,18 @@ export default async function AccountsPage() {
       })
       const netPnl = Number(result._sum.netPnl ?? 0)
       return {
-        ...account,
+        id: account.id,
+        userId: account.userId,
+        name: account.name,
+        broker: account.broker,
+        description: account.description,
+        isActive: account.isActive,
+        isMain: account.isMain,
+        startingBalance: Number(account.startingBalance),
+        commissionPerOption: Number(account.commissionPerOption),
+        commissionPerStock: Number(account.commissionPerStock),
+        optionAssignmentFee: Number(account.optionAssignmentFee),
+        createdAt: account.createdAt,
         currentBalance: Number(account.startingBalance) + netPnl,
       }
     })
