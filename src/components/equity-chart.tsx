@@ -14,7 +14,7 @@ import {
 export type EquityDataPoint = {
   month: string
   actual: number
-  expected: number
+  expected: number | null
 }
 
 const tooltipStyle: React.CSSProperties = {
@@ -26,6 +26,8 @@ const tooltipStyle: React.CSSProperties = {
 }
 
 export function EquityChart({ data }: { data: EquityDataPoint[] }) {
+  const hasExpected = data.some((d) => d.expected !== null)
+
   return (
     <ResponsiveContainer width="100%" height={220}>
       <AreaChart data={data} margin={{ top: 4, right: 4, bottom: 0, left: 0 }}>
@@ -55,16 +57,18 @@ export function EquityChart({ data }: { data: EquityDataPoint[] }) {
             name === 'actual' ? 'Actual' : 'Expected',
           ]}
         />
-        <Legend wrapperStyle={{ fontSize: '12px' }} />
-        <Area
-          type="monotone"
-          dataKey="expected"
-          stroke="var(--muted-foreground)"
-          strokeDasharray="5 5"
-          strokeWidth={1.5}
-          fill="none"
-          name="Expected"
-        />
+        {hasExpected && <Legend wrapperStyle={{ fontSize: '12px' }} />}
+        {hasExpected && (
+          <Area
+            type="monotone"
+            dataKey="expected"
+            stroke="var(--muted-foreground)"
+            strokeDasharray="5 5"
+            strokeWidth={1.5}
+            fill="none"
+            name="Expected"
+          />
+        )}
         <Area
           type="monotone"
           dataKey="actual"

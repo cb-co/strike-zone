@@ -118,7 +118,7 @@ export default async function DashboardPage() {
     return {
       month: label,
       actual: cumActual,
-      expected: breakdown ? cumExpected : cumActual,
+      expected: breakdown ? cumExpected : null,
     }
   })
 
