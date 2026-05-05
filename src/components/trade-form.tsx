@@ -110,7 +110,7 @@ export function TradeForm({ open, onOpenChange, accounts, setups, trade }: Props
         <SheetHeader>
           <SheetTitle>{isEditing ? 'Edit Trade' : 'Add Trade'}</SheetTitle>
         </SheetHeader>
-        <form onSubmit={handleSubmit} className="space-y-4 py-4">
+        <form onSubmit={handleSubmit} className="space-y-4 px-6 py-4">
           {/* Account */}
           <div className="space-y-1">
             <Label htmlFor="accountId">Account</Label>
