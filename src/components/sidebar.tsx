@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
+import { useEffect, useState } from 'react'
 import { useTheme } from 'next-themes'
 import { createClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
@@ -33,6 +34,8 @@ export function Sidebar() {
   const pathname = usePathname()
   const router = useRouter()
   const { resolvedTheme, setTheme } = useTheme()
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => setMounted(true), [])
 
   async function signOut() {
     const supabase = createClient()
@@ -63,13 +66,15 @@ export function Sidebar() {
         ))}
       </nav>
       <div className="p-2 border-t space-y-1">
-        <button
-          onClick={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')}
-          className="w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-sm font-medium text-sidebar-foreground hover:bg-sidebar-accent/50 transition-colors"
-        >
-          <HugeiconsIcon icon={resolvedTheme === 'dark' ? Sun01Icon : Moon01Icon} size={18} />
-          {resolvedTheme === 'dark' ? 'Light mode' : 'Dark mode'}
-        </button>
+        {mounted && (
+          <button
+            onClick={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')}
+            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-sm font-medium text-sidebar-foreground hover:bg-sidebar-accent/50 transition-colors"
+          >
+            <HugeiconsIcon icon={resolvedTheme === 'dark' ? Sun01Icon : Moon01Icon} size={18} />
+            {resolvedTheme === 'dark' ? 'Light mode' : 'Dark mode'}
+          </button>
+        )}
         <button
           onClick={signOut}
           className="w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-sm font-medium text-sidebar-foreground hover:bg-sidebar-accent/50 transition-colors"
