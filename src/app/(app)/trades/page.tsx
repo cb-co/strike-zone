@@ -22,7 +22,7 @@ export default async function TradesPage(props: Props) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return null
 
-  const [rawTrades, accounts, setups] = await Promise.all([
+  const [rawTrades, accounts, setups, instruments] = await Promise.all([
     prisma.trade.findMany({
       where: { userId: user.id },
       include: { tradeSetups: { include: { setup: true } } },
@@ -30,6 +30,7 @@ export default async function TradesPage(props: Props) {
     }),
     prisma.account.findMany({ where: { userId: user.id }, select: { id: true, name: true } }),
     prisma.setup.findMany({ where: { userId: user.id }, select: { id: true, name: true } }),
+    prisma.instrument.findMany({ where: { userId: user.id }, select: { id: true, ticker: true, name: true }, orderBy: { ticker: 'asc' } }),
   ])
 
   // Normalize Decimal → number for client components
@@ -59,7 +60,7 @@ export default async function TradesPage(props: Props) {
     <div className="p-6 space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold">Trades</h1>
-        <AddTradeButton accounts={accounts} setups={setups} />
+        <AddTradeButton accounts={accounts} setups={setups} instruments={instruments} />
       </div>
 
       <Tabs defaultValue={tab}>
@@ -76,11 +77,11 @@ export default async function TradesPage(props: Props) {
           <div className="mb-2 text-sm text-muted-foreground">
             Open Risk: <span className="font-medium">${openRisk.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
           </div>
-          <TradesTable trades={openTrades} variant="open" accounts={accounts} setups={setups} />
+          <TradesTable trades={openTrades} variant="open" accounts={accounts} setups={setups} instruments={instruments} />
         </TabsContent>
 
         <TabsContent value="closed">
-          <TradesTable trades={closedTrades} variant="closed" accounts={accounts} setups={setups} />
+          <TradesTable trades={closedTrades} variant="closed" accounts={accounts} setups={setups} instruments={instruments} />
         </TabsContent>
 
         <TabsContent value="calendar">
@@ -96,7 +97,7 @@ export default async function TradesPage(props: Props) {
         </TabsContent>
 
         <TabsContent value="losses">
-          <TradesTable trades={closedTrades} variant="losses" accounts={accounts} setups={setups} />
+          <TradesTable trades={closedTrades} variant="losses" accounts={accounts} setups={setups} instruments={instruments} />
         </TabsContent>
       </Tabs>
     </div>

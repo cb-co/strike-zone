@@ -44,6 +44,7 @@ type Props = {
   variant: 'closed' | 'open' | 'losses'
   accounts: { id: string; name: string }[]
   setups: { id: string; name: string }[]
+  instruments: { id: string; ticker: string; name: string }[]
 }
 
 function fmt(n: number | null | undefined, decimals = 2) {
@@ -59,7 +60,7 @@ function daysBetween(a: Date, b: Date) {
   return Math.floor((new Date(b).getTime() - new Date(a).getTime()) / 86_400_000)
 }
 
-export function TradesTable({ trades, variant, accounts, setups }: Props) {
+export function TradesTable({ trades, variant, accounts, setups, instruments }: Props) {
   const [sorting, setSorting] = useState<SortingState>(
     variant === 'losses' ? [{ id: 'netPnl', desc: false }] : []
   )
@@ -225,6 +226,7 @@ export function TradesTable({ trades, variant, accounts, setups }: Props) {
           onOpenChange={(o) => { if (!o) setEditTrade(null) }}
           accounts={accounts}
           setups={setups}
+          instruments={instruments}
           trade={editTrade as TradeFormTrade}
         />
       )}

@@ -34,11 +34,14 @@ export type TradeFormTrade = {
   tradeSetups?: { setupId: string }[]
 }
 
+type Instrument = { id: string; ticker: string; name: string }
+
 type Props = {
   open: boolean
   onOpenChange: (open: boolean) => void
   accounts: Account[]
   setups: Setup[]
+  instruments: Instrument[]
   trade?: TradeFormTrade
 }
 
@@ -65,7 +68,13 @@ function parseOccSymbol(symbol: string): ParsedOption {
   return { optionType: cp === 'C' ? 'CALL' : 'PUT', strike, expiration }
 }
 
-export function TradeForm({ open, onOpenChange, accounts, setups, trade }: Props) {
+export function TradeForm({ open, onOpenChange, accounts, setups, instruments, trade }: Props) {
+  const initialInstrument = trade
+    ? instruments.find((i) => i.ticker === trade.ticker) ?? null
+    : null
+
+  const [selectedInstrument, setSelectedInstrument] = useState<Instrument | null>(initialInstrument)
+  const [symbol, setSymbol] = useState<string>(trade?.symbol ?? '')
   const [isOption, setIsOption] = useState(!!trade?.optionType)
   const [inferredOption, setInferredOption] = useState<ParsedOption>(
     trade?.symbol ? parseOccSymbol(trade.symbol) : null
@@ -94,6 +103,7 @@ export function TradeForm({ open, onOpenChange, accounts, setups, trade }: Props
 
   function handleSymbolChange(e: React.ChangeEvent<HTMLInputElement>) {
     const val = e.target.value
+    setSymbol(val)
     const parsed = parseOccSymbol(val)
     setInferredOption(parsed)
     if (parsed) {
@@ -103,13 +113,27 @@ export function TradeForm({ open, onOpenChange, accounts, setups, trade }: Props
     }
   }
 
+  function handleInstrumentChange(id: string) {
+    const inst = instruments.find((i) => i.id === id) ?? null
+    setSelectedInstrument(inst)
+    setSymbol('')
+    setInferredOption(null)
+    setIsOption(false)
+    setStrike('')
+    setExpiration('')
+  }
+
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
+    if (!selectedInstrument) return
     setLoading(true)
     setError(null)
 
     const fd = new FormData(e.currentTarget)
     fd.set('side', side)
+    fd.set('ticker', selectedInstrument.ticker)
+    fd.set('symbol', symbol || selectedInstrument.ticker)
+    fd.set('instrumentId', selectedInstrument.id)
 
     if (showOptionFields) {
       fd.set('optionType', optionType)
@@ -179,11 +203,26 @@ export function TradeForm({ open, onOpenChange, accounts, setups, trade }: Props
             <Input id="name" name="name" defaultValue={trade?.name} placeholder="e.g. SOXL Buy Dip" required />
           </div>
 
-          {/* Ticker + Symbol */}
+          {/* Instrument + Symbol */}
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
-              <Label htmlFor="ticker">Ticker</Label>
-              <Input id="ticker" name="ticker" defaultValue={trade?.ticker} placeholder="SOXL" required />
+              <Label htmlFor="instrumentId">Ticker</Label>
+              <Select
+                value={selectedInstrument?.id ?? ''}
+                onValueChange={handleInstrumentChange}
+                required
+              >
+                <SelectTrigger id="instrumentId">
+                  <SelectValue placeholder="Select ticker" />
+                </SelectTrigger>
+                <SelectContent>
+                  {instruments.map((i) => (
+                    <SelectItem key={i.id} value={i.id}>
+                      {i.ticker} — {i.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-1">
               <Label htmlFor="symbol">
@@ -194,11 +233,9 @@ export function TradeForm({ open, onOpenChange, accounts, setups, trade }: Props
               </Label>
               <Input
                 id="symbol"
-                name="symbol"
-                defaultValue={trade?.symbol}
-                placeholder="SOXL or SOXL250417P00012000"
+                placeholder={selectedInstrument?.ticker ?? 'SOXL250417P00012000'}
+                value={symbol}
                 onChange={handleSymbolChange}
-                required
               />
             </div>
           </div>
