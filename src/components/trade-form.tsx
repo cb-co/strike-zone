@@ -5,6 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Checkbox } from '@/components/ui/checkbox'
 import { createTrade, updateTrade } from '@/actions/trades'
@@ -47,10 +48,32 @@ function toDateInput(val: Date | string | null | undefined): string {
   return d.toISOString().split('T')[0]
 }
 
+function today(): string {
+  return new Date().toISOString().split('T')[0]
+}
+
+type ParsedOption = { optionType: 'CALL' | 'PUT'; strike: string; expiration: string } | null
+
+function parseOccSymbol(symbol: string): ParsedOption {
+  // OCC format: [TICKER][YYMMDD][C|P][8-digit strike]
+  // e.g. SOXL250417P00012000
+  const m = symbol.trim().toUpperCase().match(/^[A-Z0-9]{1,6}(\d{2})(\d{2})(\d{2})([CP])(\d{5})(\d{3})$/)
+  if (!m) return null
+  const [, yy, mm, dd, cp, whole, frac] = m
+  const expiration = `20${yy}-${mm}-${dd}`
+  const strike = `${parseInt(whole, 10)}.${frac}`
+  return { optionType: cp === 'C' ? 'CALL' : 'PUT', strike, expiration }
+}
+
 export function TradeForm({ open, onOpenChange, accounts, setups, trade }: Props) {
   const [isOption, setIsOption] = useState(!!trade?.optionType)
+  const [inferredOption, setInferredOption] = useState<ParsedOption>(
+    trade?.symbol ? parseOccSymbol(trade.symbol) : null
+  )
   const [side, setSide] = useState<string>(trade?.side ?? 'LONG')
   const [optionType, setOptionType] = useState<string>(trade?.optionType ?? 'CALL')
+  const [strike, setStrike] = useState<string>(String(trade?.strike ?? ''))
+  const [expiration, setExpiration] = useState<string>(toDateInput(trade?.expiration))
   const [selectedSetups, setSelectedSetups] = useState<Set<string>>(
     new Set(trade?.tradeSetups?.map((ts) => ts.setupId) ?? [])
   )
@@ -62,11 +85,23 @@ export function TradeForm({ open, onOpenChange, accounts, setups, trade }: Props
 
   const isEditing = !!trade
   const isOpen = !trade?.closeDate
+  const showOptionFields = isOption || !!inferredOption
 
   const projectedProfit =
-    isOption && side === 'SHORT'
+    showOptionFields && side === 'SHORT'
       ? (parseFloat(entryPrice) || 0) * (parseFloat(quantity) || 0) * (parseFloat(contractSize) || 100)
       : null
+
+  function handleSymbolChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const val = e.target.value
+    const parsed = parseOccSymbol(val)
+    setInferredOption(parsed)
+    if (parsed) {
+      setOptionType(parsed.optionType)
+      setStrike(parsed.strike)
+      setExpiration(parsed.expiration)
+    }
+  }
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -76,8 +111,10 @@ export function TradeForm({ open, onOpenChange, accounts, setups, trade }: Props
     const fd = new FormData(e.currentTarget)
     fd.set('side', side)
 
-    if (isOption) {
+    if (showOptionFields) {
       fd.set('optionType', optionType)
+      fd.set('strike', strike)
+      fd.set('expiration', expiration)
     } else {
       fd.delete('optionType')
       fd.delete('strike')
@@ -149,8 +186,20 @@ export function TradeForm({ open, onOpenChange, accounts, setups, trade }: Props
               <Input id="ticker" name="ticker" defaultValue={trade?.ticker} placeholder="SOXL" required />
             </div>
             <div className="space-y-1">
-              <Label htmlFor="symbol">Symbol</Label>
-              <Input id="symbol" name="symbol" defaultValue={trade?.symbol} placeholder="SOXL or SOXL250417P00012000" required />
+              <Label htmlFor="symbol">
+                Symbol
+                {inferredOption && (
+                  <span className="ml-2 text-xs text-muted-foreground font-normal">option detected</span>
+                )}
+              </Label>
+              <Input
+                id="symbol"
+                name="symbol"
+                defaultValue={trade?.symbol}
+                placeholder="SOXL or SOXL250417P00012000"
+                onChange={handleSymbolChange}
+                required
+              />
             </div>
           </div>
 
@@ -178,26 +227,28 @@ export function TradeForm({ open, onOpenChange, accounts, setups, trade }: Props
             </div>
             <div className="space-y-1">
               <Label htmlFor="openDate">Open Date</Label>
-              <Input id="openDate" name="openDate" type="date" defaultValue={toDateInput(trade?.openDate)} required />
+              <Input id="openDate" name="openDate" type="date" defaultValue={toDateInput(trade?.openDate) || today()} required />
             </div>
           </div>
 
-          {/* Option toggle */}
-          <div className="flex items-center gap-2">
-            <Checkbox
-              id="isOption"
-              checked={isOption}
-              onCheckedChange={(v: boolean | 'indeterminate') => setIsOption(!!v)}
-            />
-            <Label htmlFor="isOption" className="cursor-pointer">This is an option trade</Label>
-          </div>
+          {/* Option toggle — only shown when not auto-detected */}
+          {!inferredOption && (
+            <div className="flex items-center gap-2">
+              <Checkbox
+                id="isOption"
+                checked={isOption}
+                onCheckedChange={(v: boolean | 'indeterminate') => setIsOption(!!v)}
+              />
+              <Label htmlFor="isOption" className="cursor-pointer">This is an option trade</Label>
+            </div>
+          )}
 
           {/* Option fields */}
-          {isOption && (
+          {showOptionFields && (
             <div className="rounded-md border p-3 space-y-3">
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-3 gap-3">
                 <div className="space-y-1">
-                  <Label>Option Type</Label>
+                  <Label>Type</Label>
                   <Select value={optionType} onValueChange={setOptionType}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
@@ -207,19 +258,17 @@ export function TradeForm({ open, onOpenChange, accounts, setups, trade }: Props
                   </Select>
                 </div>
                 <div className="space-y-1">
-                  <Label htmlFor="contractSize">Contract Size</Label>
+                  <Label htmlFor="strike">Strike</Label>
+                  <Input id="strike" name="strike" type="number" step="any" value={strike} onChange={(e) => setStrike(e.target.value)} />
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="contractSize">Contracts</Label>
                   <Input id="contractSize" name="contractSize" type="number" value={contractSize} onChange={(e) => setContractSize(e.target.value)} />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <Label htmlFor="strike">Strike</Label>
-                  <Input id="strike" name="strike" type="number" step="any" defaultValue={String(trade?.strike ?? '')} />
-                </div>
-                <div className="space-y-1">
-                  <Label htmlFor="expiration">Expiration</Label>
-                  <Input id="expiration" name="expiration" type="date" defaultValue={toDateInput(trade?.expiration)} />
-                </div>
+              <div className="space-y-1">
+                <Label htmlFor="expiration">Expiration</Label>
+                <Input id="expiration" name="expiration" type="date" value={expiration} onChange={(e) => setExpiration(e.target.value)} />
               </div>
             </div>
           )}
@@ -232,9 +281,10 @@ export function TradeForm({ open, onOpenChange, accounts, setups, trade }: Props
               </span>
             </div>
           )}
+
           <div className="space-y-1">
             <Label htmlFor="notes">Notes</Label>
-            <Input id="notes" name="notes" defaultValue={trade?.notes ?? ''} />
+            <Textarea id="notes" name="notes" defaultValue={trade?.notes ?? ''} rows={4} />
           </div>
 
           {/* Close fields — only when editing an open trade */}
