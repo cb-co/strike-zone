@@ -54,7 +54,7 @@ export function EquityChart({ data }: { data: EquityDataPoint[] }) {
           contentStyle={tooltipStyle}
           formatter={(value, name) => [
             `$${Number(value).toLocaleString(undefined, { minimumFractionDigits: 2 })}`,
-            name === 'actual' ? 'Actual' : 'Expected',
+            name,
           ]}
         />
         {hasExpected && <Legend wrapperStyle={{ fontSize: '12px' }} />}
