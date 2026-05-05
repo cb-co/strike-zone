@@ -174,6 +174,7 @@ export function GoalCard({ goal }: { goal: GoalCardData }) {
               ))}
             </Bar>
             <Tooltip
+              cursor={false}
               contentStyle={{
                 backgroundColor: 'var(--popover)',
                 borderColor: 'var(--border)',
