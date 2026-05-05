@@ -168,7 +168,7 @@ export function GoalCard({ goal }: { goal: GoalCardData }) {
             />
             <ReferenceLine y={0} stroke="var(--border)" strokeWidth={1} />
             <Bar dataKey="expected" fill="#9ca3af" opacity={0.45} radius={[2, 2, 0, 0]} />
-            <Bar dataKey="actual" radius={[2, 2, 0, 0]}>
+            <Bar dataKey="actual" fill="#3b82f6" radius={[2, 2, 0, 0]}>
               {chartData.map((d, i) => (
                 <Cell key={i} fill={d.actual >= 0 ? '#3b82f6' : '#ef4444'} />
               ))}
@@ -182,6 +182,8 @@ export function GoalCard({ goal }: { goal: GoalCardData }) {
                 borderRadius: '6px',
                 fontSize: '11px',
               }}
+              labelStyle={{ color: 'var(--muted-foreground)' }}
+              itemStyle={{ color: 'var(--popover-foreground)' }}
               formatter={(value, name) => [`$${Number(value).toFixed(0)}`, name === 'actual' ? 'Actual' : 'Expected']}
               labelFormatter={(label) => label}
             />
