@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Checkbox } from '@/components/ui/checkbox'
+import { DatePicker } from '@/components/date-picker'
 import { createTrade, updateTrade } from '@/actions/trades'
 
 type Account = { id: string; name: string }
@@ -263,8 +264,8 @@ export function TradeForm({ open, onOpenChange, accounts, setups, instruments, t
               <Input id="entryPrice" name="entryPrice" type="number" step="any" value={entryPrice} onChange={(e) => setEntryPrice(e.target.value)} required />
             </div>
             <div className="space-y-1">
-              <Label htmlFor="openDate">Open Date</Label>
-              <Input id="openDate" name="openDate" type="date" defaultValue={toDateInput(trade?.openDate) || today()} required />
+              <Label>Open Date</Label>
+              <DatePicker name="openDate" defaultValue={toDateInput(trade?.openDate) || today()} />
             </div>
           </div>
 
@@ -304,8 +305,8 @@ export function TradeForm({ open, onOpenChange, accounts, setups, instruments, t
                 </div>
               </div>
               <div className="space-y-1">
-                <Label htmlFor="expiration">Expiration</Label>
-                <Input id="expiration" name="expiration" type="date" value={expiration} onChange={(e) => setExpiration(e.target.value)} />
+                <Label>Expiration</Label>
+                <DatePicker name="expiration" value={expiration} onValueChange={setExpiration} />
               </div>
             </div>
           )}
@@ -334,8 +335,8 @@ export function TradeForm({ open, onOpenChange, accounts, setups, instruments, t
                   <Input id="exitPrice" name="exitPrice" type="number" step="any" defaultValue={String(trade?.exitPrice ?? '')} />
                 </div>
                 <div className="space-y-1">
-                  <Label htmlFor="closeDate">Close Date</Label>
-                  <Input id="closeDate" name="closeDate" type="date" defaultValue={toDateInput(trade?.closeDate) || today()} />
+                  <Label>Close Date</Label>
+                  <DatePicker name="closeDate" defaultValue={toDateInput(trade?.closeDate) || today()} />
                 </div>
               </div>
             </div>
