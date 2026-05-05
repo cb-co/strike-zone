@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -105,12 +105,12 @@ export function TradeForm({ open, onOpenChange, accounts, setups, trade }: Props
   }
 
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="w-full sm:max-w-lg overflow-y-auto">
-        <SheetHeader>
-          <SheetTitle>{isEditing ? 'Edit Trade' : 'Add Trade'}</SheetTitle>
-        </SheetHeader>
-        <form onSubmit={handleSubmit} className="space-y-4 px-6 py-4">
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>{isEditing ? 'Edit Trade' : 'Add Trade'}</DialogTitle>
+        </DialogHeader>
+        <form onSubmit={handleSubmit} className="space-y-4">
           {/* Account */}
           <div className="space-y-1">
             <Label htmlFor="accountId">Account</Label>
@@ -268,7 +268,7 @@ export function TradeForm({ open, onOpenChange, accounts, setups, trade }: Props
             </Button>
           </div>
         </form>
-      </SheetContent>
-    </Sheet>
+      </DialogContent>
+    </Dialog>
   )
 }
