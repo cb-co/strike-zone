@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { BarChart, Bar, ResponsiveContainer, Tooltip } from 'recharts'
+import { BarChart, Bar, Cell, XAxis, ReferenceLine, ResponsiveContainer, Tooltip } from 'recharts'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
@@ -42,8 +42,9 @@ export function GoalCard({ goal }: { goal: GoalCardData }) {
   const actualPct = Math.min(1, actualYTD / goal.goalAmount)
   const expectedPct = Math.min(1, expectedYTD / goal.goalAmount)
 
+  const MONTHS = ['J','F','M','A','M','J','J','A','S','O','N','D']
   const chartData = breakdown.map((b, i) => ({
-    month: i + 1,
+    month: MONTHS[i],
     expected: b.expectedPnl,
     actual: goal.actualMonthlyPnl[i] ?? 0,
   }))
@@ -81,7 +82,11 @@ export function GoalCard({ goal }: { goal: GoalCardData }) {
             <DialogTrigger asChild><Button size="sm" variant="outline">Edit</Button></DialogTrigger>
             <DialogContent>
               <DialogHeader><DialogTitle>Edit Goal</DialogTitle></DialogHeader>
-              <form action={(fd) => updateGoal(goal.id, fd).then(() => setEditOpen(false))} className="space-y-4">
+              <form action={(fd) => {
+                const raw = parseFloat(fd.get('monthlyVariableWdPct') as string) || 0
+                fd.set('monthlyVariableWdPct', String(raw / 100))
+                return updateGoal(goal.id, fd).then(() => setEditOpen(false))
+              }} className="space-y-4">
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1">
                     <Label htmlFor="goalAmount">Goal Amount</Label>
@@ -99,7 +104,7 @@ export function GoalCard({ goal }: { goal: GoalCardData }) {
                   </div>
                   <div className="space-y-1">
                     <Label htmlFor="monthlyVariableWdPct">Variable WD %</Label>
-                    <Input id="monthlyVariableWdPct" name="monthlyVariableWdPct" type="number" step="0.01" placeholder="0.1 = 10%" defaultValue={goal.monthlyVariableWdPct} />
+                    <Input id="monthlyVariableWdPct" name="monthlyVariableWdPct" type="number" step="1" placeholder="10" defaultValue={goal.monthlyVariableWdPct * 100} />
                   </div>
                 </div>
                 <input type="hidden" name="accountId" value={goal.accountId} />
@@ -152,21 +157,32 @@ export function GoalCard({ goal }: { goal: GoalCardData }) {
       </div>
 
       {/* Mini bar chart */}
-      <div className="h-20">
+      <div className="h-24">
         <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={chartData} margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
-            <Bar dataKey="expected" fill="var(--muted-foreground)" opacity={0.4} radius={[2, 2, 0, 0]} />
-            <Bar dataKey="actual" fill="var(--primary)" radius={[2, 2, 0, 0]} />
+          <BarChart data={chartData} margin={{ top: 4, right: 0, bottom: 0, left: 0 }} barGap={2} barCategoryGap="25%">
+            <XAxis
+              dataKey="month"
+              tick={{ fontSize: 9, fill: 'var(--muted-foreground)' }}
+              tickLine={false}
+              axisLine={false}
+            />
+            <ReferenceLine y={0} stroke="var(--border)" strokeWidth={1} />
+            <Bar dataKey="expected" fill="#9ca3af" opacity={0.45} radius={[2, 2, 0, 0]} />
+            <Bar dataKey="actual" radius={[2, 2, 0, 0]}>
+              {chartData.map((d, i) => (
+                <Cell key={i} fill={d.actual >= 0 ? '#3b82f6' : '#ef4444'} />
+              ))}
+            </Bar>
             <Tooltip
               contentStyle={{
                 backgroundColor: 'var(--popover)',
                 borderColor: 'var(--border)',
                 color: 'var(--popover-foreground)',
                 borderRadius: '6px',
-                fontSize: '12px',
+                fontSize: '11px',
               }}
               formatter={(value, name) => [`$${Number(value).toFixed(0)}`, name === 'actual' ? 'Actual' : 'Expected']}
-              labelFormatter={(label) => `Month ${label}`}
+              labelFormatter={(label) => label}
             />
           </BarChart>
         </ResponsiveContainer>

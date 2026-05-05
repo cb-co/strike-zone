@@ -19,7 +19,12 @@ export function NewGoalButton({ accounts }: Props) {
       <DialogTrigger asChild><Button>New Goal</Button></DialogTrigger>
       <DialogContent>
         <DialogHeader><DialogTitle>New Goal</DialogTitle></DialogHeader>
-        <form action={(fd) => { fd.set('accountId', accountId); return createGoal(fd).then(() => setOpen(false)) }} className="space-y-4">
+        <form action={(fd) => {
+          fd.set('accountId', accountId)
+          const raw = parseFloat(fd.get('monthlyVariableWdPct') as string) || 0
+          fd.set('monthlyVariableWdPct', String(raw / 100))
+          return createGoal(fd).then(() => setOpen(false))
+        }} className="space-y-4">
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
               <Label htmlFor="year">Year</Label>
@@ -51,8 +56,8 @@ export function NewGoalButton({ accounts }: Props) {
               <Input id="monthlyFixedWd" name="monthlyFixedWd" type="number" step="any" defaultValue="0" />
             </div>
             <div className="space-y-1">
-              <Label htmlFor="monthlyVariableWdPct">Variable WD % (0.1 = 10%)</Label>
-              <Input id="monthlyVariableWdPct" name="monthlyVariableWdPct" type="number" step="0.01" defaultValue="0" />
+              <Label htmlFor="monthlyVariableWdPct">Variable WD %</Label>
+              <Input id="monthlyVariableWdPct" name="monthlyVariableWdPct" type="number" step="1" placeholder="0" defaultValue="0" />
             </div>
           </div>
           <div className="flex justify-end gap-2">
