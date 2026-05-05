@@ -252,27 +252,46 @@ export default async function DashboardPage() {
             </div>
           )}
 
-          {/* Open positions */}
-          <div className="rounded-lg border p-4 space-y-2">
-            <h2 className="text-sm font-medium">Open Positions</h2>
-            {openTrades.length === 0 ? (
-              <p className="text-xs text-muted-foreground">No open trades</p>
-            ) : (
-              <div className="space-y-1">
-                {openTrades.map((t, i) => (
-                  <div key={i} className="flex items-center justify-between text-xs gap-2">
-                    <span className="font-mono font-medium">{t.ticker}</span>
-                    <Badge variant={t.side === 'LONG' ? 'default' : 'secondary'} className="text-xs px-1 py-0">{t.side}</Badge>
-                    <span className="text-muted-foreground">${Number(t.entryPrice).toFixed(2)}</span>
-                    <span className={t.projectedProfit ? (Number(t.projectedProfit) >= 0 ? 'text-green-600' : 'text-red-600') : 'text-muted-foreground'}>
-                      {t.projectedProfit ? `$${Number(t.projectedProfit).toFixed(0)}` : '—'}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
         </div>
+      </div>
+
+      {/* Open positions — full width */}
+      <div className="rounded-lg border p-4 space-y-3">
+        <h2 className="text-sm font-medium">Open Positions</h2>
+        {openTrades.length === 0 ? (
+          <p className="text-xs text-muted-foreground">No open trades</p>
+        ) : (
+          <div className="rounded-md border overflow-x-auto">
+            <table className="w-full text-xs">
+              <thead className="border-b bg-muted/50">
+                <tr>
+                  <th className="px-3 py-2 text-left font-medium">Ticker</th>
+                  <th className="px-3 py-2 text-left font-medium">Side</th>
+                  <th className="px-3 py-2 text-right font-medium">Entry</th>
+                  <th className="px-3 py-2 text-right font-medium">Proj. Profit</th>
+                  <th className="px-3 py-2 text-left font-medium">Opened</th>
+                  <th className="px-3 py-2 text-left font-medium">Expiration</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y">
+                {openTrades.map((t, i) => (
+                  <tr key={i}>
+                    <td className="px-3 py-2 font-mono font-medium">{t.ticker}</td>
+                    <td className="px-3 py-2">
+                      <Badge variant={t.side === 'LONG' ? 'default' : 'secondary'} className="text-xs px-1 py-0">{t.side}</Badge>
+                    </td>
+                    <td className="px-3 py-2 text-right">${Number(t.entryPrice).toFixed(2)}</td>
+                    <td className={cn('px-3 py-2 text-right', t.projectedProfit ? (Number(t.projectedProfit) >= 0 ? 'text-green-600' : 'text-red-600') : 'text-muted-foreground')}>
+                      {t.projectedProfit ? `$${Number(t.projectedProfit).toFixed(0)}` : '—'}
+                    </td>
+                    <td className="px-3 py-2 text-muted-foreground">{new Date(t.openDate).toLocaleDateString()}</td>
+                    <td className="px-3 py-2 text-muted-foreground">{t.expiration ? new Date(t.expiration).toLocaleDateString() : '—'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
     </div>
   )
