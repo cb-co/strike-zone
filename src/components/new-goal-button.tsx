@@ -17,7 +17,7 @@ export function NewGoalButton({ accounts }: Props) {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild><Button>New Goal</Button></DialogTrigger>
-      <DialogContent>
+      <DialogContent aria-describedby={undefined}>
         <DialogHeader><DialogTitle>New Goal</DialogTitle></DialogHeader>
         <form action={(fd) => {
           fd.set('accountId', accountId)

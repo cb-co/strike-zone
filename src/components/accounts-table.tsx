@@ -91,7 +91,7 @@ export function AccountsTable({ accounts }: { accounts: Account[] }) {
           <DialogTrigger asChild>
             <Button>Add Account</Button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent aria-describedby={undefined}>
             <DialogHeader><DialogTitle>New Account</DialogTitle></DialogHeader>
             <AccountForm onDone={() => setAddOpen(false)} />
           </DialogContent>
@@ -135,7 +135,7 @@ export function AccountsTable({ accounts }: { accounts: Account[] }) {
                       <DialogTrigger asChild>
                         <Button size="sm" variant="outline">Edit</Button>
                       </DialogTrigger>
-                      <DialogContent>
+                      <DialogContent aria-describedby={undefined}>
                         <DialogHeader><DialogTitle>Edit Account</DialogTitle></DialogHeader>
                         <AccountForm account={account} onDone={() => setEditingId(null)} />
                       </DialogContent>

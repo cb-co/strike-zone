@@ -75,7 +75,7 @@ export function InstrumentsTable({ instruments }: { instruments: Instrument[] })
       <div className="flex justify-end">
         <Dialog open={addOpen} onOpenChange={setAddOpen}>
           <DialogTrigger asChild><Button>Add Instrument</Button></DialogTrigger>
-          <DialogContent>
+          <DialogContent aria-describedby={undefined}>
             <DialogHeader><DialogTitle>New Instrument</DialogTitle></DialogHeader>
             <InstrumentForm onDone={() => setAddOpen(false)} />
           </DialogContent>
@@ -103,7 +103,7 @@ export function InstrumentsTable({ instruments }: { instruments: Instrument[] })
                   <div className="flex justify-end gap-2">
                     <Dialog open={editingId === inst.id} onOpenChange={(o) => setEditingId(o ? inst.id : null)}>
                       <DialogTrigger asChild><Button size="sm" variant="outline">Edit</Button></DialogTrigger>
-                      <DialogContent>
+                      <DialogContent aria-describedby={undefined}>
                         <DialogHeader><DialogTitle>Edit Instrument</DialogTitle></DialogHeader>
                         <InstrumentForm instrument={inst} onDone={() => setEditingId(null)} />
                       </DialogContent>

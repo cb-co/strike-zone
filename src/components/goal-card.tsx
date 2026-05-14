@@ -81,7 +81,7 @@ export function GoalCard({ goal }: { goal: GoalCardData }) {
           <span className="text-sm text-muted-foreground">Goal: <span className="font-medium text-foreground">${goal.goalAmount.toLocaleString()}</span></span>
           <Dialog open={editOpen} onOpenChange={setEditOpen}>
             <DialogTrigger asChild><Button size="sm" variant="outline">Edit</Button></DialogTrigger>
-            <DialogContent>
+            <DialogContent aria-describedby={undefined}>
               <DialogHeader><DialogTitle>Edit Goal</DialogTitle></DialogHeader>
               <form action={(fd) => {
                 const raw = parseFloat(fd.get('monthlyVariableWdPct') as string) || 0

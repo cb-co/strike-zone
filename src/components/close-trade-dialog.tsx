@@ -62,7 +62,7 @@ export function CloseTradeDialog({ open, onOpenChange, trade }: Props) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-sm">
+      <DialogContent className="sm:max-w-sm" aria-describedby={undefined}>
         <DialogHeader>
           <DialogTitle>Close {trade.ticker}</DialogTitle>
         </DialogHeader>

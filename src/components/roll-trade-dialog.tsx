@@ -88,7 +88,7 @@ export function RollTradeDialog({ open, onOpenChange, trade }: Props) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md" aria-describedby={undefined}>
         <DialogHeader>
           <DialogTitle>Roll {trade.ticker} {trade.optionType ?? ''}</DialogTitle>
         </DialogHeader>

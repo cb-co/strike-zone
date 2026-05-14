@@ -41,7 +41,7 @@ export function SetupsSection({ setups }: { setups: Setup[] }) {
       <div className="flex justify-end">
         <Dialog open={addOpen} onOpenChange={setAddOpen}>
           <DialogTrigger asChild><Button size="sm">Add Setup</Button></DialogTrigger>
-          <DialogContent>
+          <DialogContent aria-describedby={undefined}>
             <DialogHeader><DialogTitle>New Setup</DialogTitle></DialogHeader>
             <SetupForm onDone={() => setAddOpen(false)} />
           </DialogContent>
@@ -57,7 +57,7 @@ export function SetupsSection({ setups }: { setups: Setup[] }) {
             <div className="flex gap-2">
               <Dialog open={editingId === setup.id} onOpenChange={(o) => setEditingId(o ? setup.id : null)}>
                 <DialogTrigger asChild><Button size="sm" variant="outline">Edit</Button></DialogTrigger>
-                <DialogContent>
+                <DialogContent aria-describedby={undefined}>
                   <DialogHeader><DialogTitle>Edit Setup</DialogTitle></DialogHeader>
                   <SetupForm setup={setup} onDone={() => setEditingId(null)} />
                 </DialogContent>
