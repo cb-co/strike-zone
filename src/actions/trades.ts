@@ -177,6 +177,14 @@ const rollSchema = z.object({
   newContractSize: z.coerce.number().int().optional().nullable(),
 })
 
+function buildOccSymbol(ticker: string, expiration: Date, optionType: string, strike: number): string {
+  const yy = String(expiration.getUTCFullYear()).slice(2)
+  const mm = String(expiration.getUTCMonth() + 1).padStart(2, '0')
+  const dd = String(expiration.getUTCDate()).padStart(2, '0')
+  const cp = optionType === 'CALL' ? 'C' : 'P'
+  return `${ticker}${yy}${mm}${dd}${cp}${strike}`
+}
+
 export async function rollTrade(id: string, formData: FormData) {
   const userId = await getUserId()
   const raw = Object.fromEntries(formData)
@@ -225,7 +233,12 @@ export async function rollTrade(id: string, formData: FormData) {
         accountId: original.accountId,
         name: original.name + ' →Roll',
         ticker: original.ticker,
-        symbol: original.ticker, // user can update symbol after
+        symbol: buildOccSymbol(
+          original.ticker,
+          data.newExpiration ? new Date(data.newExpiration) : original.expiration!,
+          original.optionType!,
+          data.newStrike ?? Number(original.strike),
+        ),
         side: original.side,
         quantity: qty,
         entryPrice: data.newEntryPrice,
