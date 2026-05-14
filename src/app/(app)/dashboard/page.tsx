@@ -159,22 +159,27 @@ export default async function DashboardPage() {
     {
       title: 'Monthly P&L',
       value: `${monthlyPnl >= 0 ? '+' : ''}$${fmt(monthlyPnl)}`,
-      color: monthlyPnl >= 0 ? 'text-green-600' : 'text-red-600',
+      valueClass: monthlyPnl >= 0 ? 'text-emerald-600' : 'text-rose-600',
+      accent: monthlyPnl >= 0 ? '#10b981' : '#f43f5e',
     },
     {
       title: 'Win Rate (YTD)',
       value: `${winRate.toFixed(1)}%`,
       sub: `${winningTrades} / ${ytdTrades.length} trades`,
+      valueClass: '',
+      accent: '#94a3b8',
     },
     {
       title: 'Open Risk',
       value: `$${fmt(openRisk)}`,
-      color: 'text-orange-600',
+      valueClass: 'text-amber-600',
+      accent: '#f59e0b',
     },
     {
       title: '% Return (YTD)',
       value: `${pctReturn >= 0 ? '+' : ''}${pctReturn.toFixed(2)}%`,
-      color: pctReturn >= 0 ? 'text-green-600' : 'text-red-600',
+      valueClass: pctReturn >= 0 ? 'text-emerald-600' : 'text-rose-600',
+      accent: pctReturn >= 0 ? '#10b981' : '#f43f5e',
     },
   ]
 
@@ -187,13 +192,13 @@ export default async function DashboardPage() {
 
       {/* KPI cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
-        {kpis.map(({ title, value, sub, color }) => (
-          <Card key={title}>
-            <CardHeader className="pb-1">
-              <CardTitle className="text-sm font-medium text-muted-foreground">{title}</CardTitle>
+        {kpis.map(({ title, value, sub, valueClass, accent }) => (
+          <Card key={title} className="border-l-[3px]" style={{ borderLeftColor: accent }}>
+            <CardHeader className="pb-1 pt-4 px-4">
+              <CardTitle className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{title}</CardTitle>
             </CardHeader>
-            <CardContent>
-              <p className={cn('text-2xl font-bold', color)}>{value}</p>
+            <CardContent className="px-4 pb-4">
+              <p className={cn('text-2xl font-semibold tabular-nums', valueClass)}>{value}</p>
               {sub && <p className="text-xs text-muted-foreground mt-0.5">{sub}</p>}
             </CardContent>
           </Card>
@@ -204,7 +209,7 @@ export default async function DashboardPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Equity chart */}
         <div className="lg:col-span-2 rounded-lg border p-4">
-          <h2 className="text-sm font-medium mb-3">Equity {currentYear}</h2>
+          <h2 className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-4">Equity {currentYear}</h2>
           <EquityChart data={equityData} />
         </div>
 
@@ -213,21 +218,21 @@ export default async function DashboardPage() {
           {/* Current month goal */}
           {goal && breakdown ? (
             <div className="rounded-lg border p-4 space-y-3">
-              <h2 className="text-sm font-medium">{MONTH_LABELS[currentMonth]} Goal</h2>
+              <h2 className="text-xs font-medium uppercase tracking-wider text-muted-foreground">{MONTH_LABELS[currentMonth]} Goal</h2>
               <div className="grid grid-cols-3 gap-2 text-center text-xs">
                 <div>
-                  <p className="text-muted-foreground">Actual</p>
-                  <p className={cn('font-semibold text-sm', monthlyPnl >= 0 ? 'text-green-600' : 'text-red-600')}>
+                  <p className="text-muted-foreground mb-0.5">Actual</p>
+                  <p className={cn('font-semibold text-sm tabular-nums', monthlyPnl >= 0 ? 'text-emerald-600' : 'text-rose-600')}>
                     {monthlyPnl >= 0 ? '+' : ''}${fmt(monthlyPnl)}
                   </p>
                 </div>
                 <div>
-                  <p className="text-muted-foreground">Expected</p>
-                  <p className="font-semibold text-sm">${fmt(monthExpected)}</p>
+                  <p className="text-muted-foreground mb-0.5">Expected</p>
+                  <p className="font-semibold text-sm tabular-nums">${fmt(monthExpected)}</p>
                 </div>
                 <div>
-                  <p className="text-muted-foreground">Gap</p>
-                  <p className={cn('font-semibold text-sm', monthGap >= 0 ? 'text-green-600' : 'text-red-600')}>
+                  <p className="text-muted-foreground mb-0.5">Gap</p>
+                  <p className={cn('font-semibold text-sm tabular-nums', monthGap >= 0 ? 'text-emerald-600' : 'text-rose-600')}>
                     {monthGap >= 0 ? '+' : ''}${fmt(monthGap)}
                   </p>
                 </div>
@@ -235,10 +240,10 @@ export default async function DashboardPage() {
               {monthExpected > 0 && (
                 <div className="space-y-1 text-xs text-muted-foreground">
                   <div className="flex items-center gap-2">
-                    <div className="flex-1 bg-muted rounded-full h-1.5">
-                      <div className="bg-blue-500 h-1.5 rounded-full transition-all" style={{ width: `${Math.min(100, monthActualPct)}%` }} />
+                    <div className="flex-1 bg-muted rounded-full h-1.5 overflow-hidden">
+                      <div className="bg-blue-400 h-full rounded-full transition-all" style={{ width: `${Math.min(100, monthActualPct)}%` }} />
                     </div>
-                    <span className="w-8 text-right">{monthActualPct.toFixed(0)}%</span>
+                    <span className="w-8 text-right tabular-nums">{monthActualPct.toFixed(0)}%</span>
                   </div>
                 </div>
               )}
@@ -248,25 +253,25 @@ export default async function DashboardPage() {
           {/* Yearly goal progress */}
           {goal ? (
             <div className="rounded-lg border p-4 space-y-3">
-              <h2 className="text-sm font-medium">Year Goal</h2>
-              <div className="space-y-2 text-xs text-muted-foreground">
+              <h2 className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Year Goal</h2>
+              <div className="space-y-2.5 text-xs text-muted-foreground">
                 <div className="flex items-center gap-2">
                   <span className="w-16 shrink-0">Actual</span>
-                  <div className="flex-1 bg-muted rounded-full h-2">
-                    <div className="bg-green-500 h-2 rounded-full" style={{ width: `${goalActualPct}%` }} />
+                  <div className="flex-1 bg-muted rounded-full h-1.5 overflow-hidden">
+                    <div className="bg-emerald-500 h-full rounded-full transition-all" style={{ width: `${goalActualPct}%` }} />
                   </div>
-                  <span className="w-10 text-right">{goalActualPct.toFixed(0)}%</span>
+                  <span className="w-10 text-right tabular-nums">{goalActualPct.toFixed(0)}%</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="w-16 shrink-0">Expected</span>
-                  <div className="flex-1 bg-muted rounded-full h-2">
-                    <div className="bg-blue-400 h-2 rounded-full" style={{ width: `${goalExpectedPct}%` }} />
+                  <div className="flex-1 bg-muted rounded-full h-1.5 overflow-hidden">
+                    <div className="bg-blue-400 h-full rounded-full transition-all" style={{ width: `${goalExpectedPct}%` }} />
                   </div>
-                  <span className="w-10 text-right">{goalExpectedPct.toFixed(0)}%</span>
+                  <span className="w-10 text-right tabular-nums">{goalExpectedPct.toFixed(0)}%</span>
                 </div>
               </div>
-              <div className="text-xs text-muted-foreground flex justify-between">
-                <span>${fmt(ytdPnl)} of ${goalAmount.toLocaleString()}</span>
+              <div className="text-xs text-muted-foreground flex justify-between pt-0.5">
+                <span className="tabular-nums">${fmt(ytdPnl)} of ${goalAmount.toLocaleString()}</span>
                 <Link href="/monthly" className="text-primary hover:underline">Details →</Link>
               </div>
             </div>
@@ -282,7 +287,7 @@ export default async function DashboardPage() {
 
       {/* Open positions — full width */}
       <div className="rounded-lg border p-4 space-y-3">
-        <h2 className="text-sm font-medium">Open Positions</h2>
+        <h2 className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Open Positions</h2>
         <DashboardOpenPositions
           positions={openPositions}
           accounts={accounts}

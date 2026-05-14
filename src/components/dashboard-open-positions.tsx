@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { TradeForm, type TradeFormTrade } from '@/components/trade-form'
@@ -62,35 +61,50 @@ export function DashboardOpenPositions({ positions, accounts, setups }: Props) {
           <tbody className="divide-y">
             {positions.map((t) => {
               const daysOpen = Math.floor((Date.now() - new Date(t.openDate).getTime()) / 86_400_000)
+              const dte = t.expiration
+                ? Math.ceil((new Date(t.expiration).getTime() - Date.now()) / 86_400_000)
+                : null
               return (
-              <tr key={t.id} className="hover:bg-muted/30">
+              <tr key={t.id} className="hover:bg-muted/30 transition-colors">
                 <td className="px-3 py-2 font-mono font-medium">{t.ticker}</td>
-                <td className="px-3 py-2 font-mono text-muted-foreground">{t.symbol}</td>
+                <td className="px-3 py-2 font-mono text-muted-foreground text-[11px]">{t.symbol}</td>
                 <td className="px-3 py-2">
-                  <Badge variant={t.side === 'LONG' ? 'default' : 'secondary'} className="text-xs px-1 py-0">
+                  <span className={cn(
+                    'inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide ring-1',
+                    t.side === 'LONG'
+                      ? 'bg-emerald-50 text-emerald-700 ring-emerald-200'
+                      : 'bg-rose-50 text-rose-700 ring-rose-200',
+                  )}>
                     {t.side}
-                  </Badge>
+                  </span>
                 </td>
-                <td className="px-3 py-2 text-right">{t.quantity}</td>
-                <td className="px-3 py-2 text-right">${t.entryPrice.toFixed(2)}</td>
+                <td className="px-3 py-2 text-right tabular-nums">{t.quantity}</td>
+                <td className="px-3 py-2 text-right tabular-nums">${t.entryPrice.toFixed(2)}</td>
                 <td className={cn(
-                  'px-3 py-2 text-right',
+                  'px-3 py-2 text-right tabular-nums',
                   t.projectedProfit != null
-                    ? t.projectedProfit >= 0 ? 'text-green-600' : 'text-red-600'
+                    ? t.projectedProfit >= 0 ? 'text-emerald-600' : 'text-rose-600'
                     : 'text-muted-foreground',
                 )}>
                   {t.projectedProfit != null ? `$${t.projectedProfit.toFixed(0)}` : '—'}
                 </td>
-                <td className="px-3 py-2 text-right text-muted-foreground">{daysOpen}d</td>
-                <td className="px-3 py-2 text-muted-foreground">
+                <td className="px-3 py-2 text-right text-muted-foreground tabular-nums">{daysOpen}d</td>
+                <td className={cn(
+                  'px-3 py-2 tabular-nums',
+                  dte !== null && dte <= 0 ? 'text-rose-600 font-medium' :
+                  dte !== null && dte <= 7 ? 'text-amber-600 font-medium' :
+                  'text-muted-foreground',
+                )}>
                   {t.expiration ? new Date(t.expiration).toLocaleDateString() : '—'}
+                  {dte !== null && dte <= 7 && dte > 0 && <span className="ml-1 text-[10px]">({dte}d)</span>}
+                  {dte !== null && dte <= 0 && <span className="ml-1 text-[10px]">(exp)</span>}
                 </td>
                 <td className="px-3 py-2">
                   <div className="flex justify-end gap-1">
-                    <Button size="sm" variant="outline" className="h-6 px-2 text-xs" onClick={() => setEditTrade(t)}>Edit</Button>
-                    <Button size="sm" variant="outline" className="h-6 px-2 text-xs" onClick={() => setClosingTrade(t)}>Close</Button>
+                    <Button size="sm" variant="ghost" className="h-6 px-2 text-xs text-muted-foreground hover:text-foreground" onClick={() => setEditTrade(t)}>Edit</Button>
+                    <Button size="sm" variant="ghost" className="h-6 px-2 text-xs text-rose-600 hover:text-rose-700 hover:bg-rose-50" onClick={() => setClosingTrade(t)}>Close</Button>
                     {t.optionType && (
-                      <Button size="sm" variant="outline" className="h-6 px-2 text-xs" onClick={() => setRollingTrade(t)}>Roll</Button>
+                      <Button size="sm" variant="ghost" className="h-6 px-2 text-xs text-blue-600 hover:text-blue-700 hover:bg-blue-50" onClick={() => setRollingTrade(t)}>Roll</Button>
                     )}
                   </div>
                 </td>
