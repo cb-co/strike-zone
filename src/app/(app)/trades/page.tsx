@@ -6,6 +6,7 @@ import { CalendarTab } from '@/components/calendar-tab'
 import { ByTickerTab } from '@/components/by-ticker-tab'
 import { BySetupsTab } from '@/components/by-setups-tab'
 import { AddTradeButton } from '@/components/add-trade-button'
+import { ImportQfxButton } from '@/components/import-qfx-button'
 import { calcOpenRisk } from '@/lib/trades'
 
 type Props = {
@@ -62,7 +63,10 @@ export default async function TradesPage(props: Props) {
     <div className="p-6 space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold">Trades</h1>
-        <AddTradeButton accounts={accounts} setups={setups}  />
+        <div className="flex items-center gap-2">
+          <ImportQfxButton accounts={accounts} />
+          <AddTradeButton accounts={accounts} setups={setups} />
+        </div>
       </div>
 
       <Tabs defaultValue={tab}>
