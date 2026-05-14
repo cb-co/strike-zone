@@ -9,6 +9,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Checkbox } from '@/components/ui/checkbox'
 import { DatePicker } from '@/components/date-picker'
+import { TickerSearch } from '@/components/ticker-search'
 import { createTrade, updateTrade } from '@/actions/trades'
 
 type Account = { id: string; name: string }
@@ -35,14 +36,11 @@ export type TradeFormTrade = {
   tradeSetups?: { setupId: string }[]
 }
 
-type Instrument = { id: string; ticker: string; name: string }
-
 type Props = {
   open: boolean
   onOpenChange: (open: boolean) => void
   accounts: Account[]
   setups: Setup[]
-  instruments: Instrument[]
   trade?: TradeFormTrade
 }
 
@@ -56,25 +54,40 @@ function today(): string {
   return new Date().toISOString().split('T')[0]
 }
 
-type ParsedOption = { optionType: 'CALL' | 'PUT'; strike: string; expiration: string } | null
+type ParsedOption = { ticker: string; optionType: 'CALL' | 'PUT'; strike: string; expiration: string } | null
 
 function parseOccSymbol(symbol: string): ParsedOption {
-  // OCC format: [TICKER][YYMMDD][C|P][8-digit strike]
-  // e.g. SOXL250417P00012000
-  const m = symbol.trim().toUpperCase().match(/^[A-Z0-9]{1,6}(\d{2})(\d{2})(\d{2})([CP])(\d{5})(\d{3})$/)
-  if (!m) return null
-  const [, yy, mm, dd, cp, whole, frac] = m
-  const expiration = `20${yy}-${mm}-${dd}`
-  const strike = `${parseInt(whole, 10)}.${frac}`
-  return { optionType: cp === 'C' ? 'CALL' : 'PUT', strike, expiration }
+  const s = symbol.trim().toUpperCase()
+
+  // Full OCC: TICKER + optional space + YYMMDD + C/P + 8-digit padded strike (e.g. SOXL250417P00012000)
+  const full = s.match(/^([A-Z0-9]{1,6}) ?(\d{2})(\d{2})(\d{2})([CP])(\d{5})(\d{3})$/)
+  if (full) {
+    const [, tkr, yy, mm, dd, cp, whole, frac] = full
+    return {
+      ticker: tkr,
+      optionType: cp === 'C' ? 'CALL' : 'PUT',
+      strike: `${parseInt(whole, 10)}.${frac}`,
+      expiration: `20${yy}-${mm}-${dd}`,
+    }
+  }
+
+  // Abbreviated: TICKER + optional space + YYMMDD + C/P + plain number (e.g. ASTX 260618P25 or SPY260618C600.5)
+  const abbrev = s.match(/^([A-Z0-9]{1,6}) ?(\d{2})(\d{2})(\d{2})([CP])(\d+(?:\.\d+)?)$/)
+  if (abbrev) {
+    const [, tkr, yy, mm, dd, cp, strike] = abbrev
+    return {
+      ticker: tkr,
+      optionType: cp === 'C' ? 'CALL' : 'PUT',
+      strike,
+      expiration: `20${yy}-${mm}-${dd}`,
+    }
+  }
+
+  return null
 }
 
-export function TradeForm({ open, onOpenChange, accounts, setups, instruments, trade }: Props) {
-  const initialInstrument = trade
-    ? instruments.find((i) => i.ticker === trade.ticker) ?? null
-    : null
-
-  const [selectedInstrument, setSelectedInstrument] = useState<Instrument | null>(initialInstrument)
+export function TradeForm({ open, onOpenChange, accounts, setups, trade }: Props) {
+  const [ticker, setTicker] = useState<string>(trade?.ticker ?? '')
   const [symbol, setSymbol] = useState<string>(trade?.symbol ?? '')
   const [isOption, setIsOption] = useState(!!trade?.optionType)
   const [inferredOption, setInferredOption] = useState<ParsedOption>(
@@ -103,20 +116,24 @@ export function TradeForm({ open, onOpenChange, accounts, setups, instruments, t
       : null
 
   function handleSymbolChange(e: React.ChangeEvent<HTMLInputElement>) {
+    setSymbol(e.target.value)
+  }
+
+  function handleSymbolBlur(e: React.FocusEvent<HTMLInputElement>) {
     const val = e.target.value
-    setSymbol(val)
     const parsed = parseOccSymbol(val)
     setInferredOption(parsed)
     if (parsed) {
+      setIsOption(true)
       setOptionType(parsed.optionType)
       setStrike(parsed.strike)
       setExpiration(parsed.expiration)
+      if (!ticker) setTicker(parsed.ticker)
     }
   }
 
-  function handleInstrumentChange(id: string) {
-    const inst = instruments.find((i) => i.id === id) ?? null
-    setSelectedInstrument(inst)
+  function handleTickerSelect(t: string) {
+    setTicker(t)
     setSymbol('')
     setInferredOption(null)
     setIsOption(false)
@@ -126,15 +143,14 @@ export function TradeForm({ open, onOpenChange, accounts, setups, instruments, t
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
-    if (!selectedInstrument) return
+    if (!ticker) { setError('Select a ticker'); return }
     setLoading(true)
     setError(null)
 
     const fd = new FormData(e.currentTarget)
     fd.set('side', side)
-    fd.set('ticker', selectedInstrument.ticker)
-    fd.set('symbol', symbol || selectedInstrument.ticker)
-    fd.set('instrumentId', selectedInstrument.id)
+    fd.set('ticker', ticker)
+    fd.set('symbol', symbol || ticker)
 
     if (showOptionFields) {
       fd.set('optionType', optionType)
@@ -204,26 +220,16 @@ export function TradeForm({ open, onOpenChange, accounts, setups, instruments, t
             <Input id="name" name="name" defaultValue={trade?.name} placeholder="e.g. SOXL Buy Dip" required />
           </div>
 
-          {/* Instrument + Symbol */}
+          {/* Ticker + Symbol */}
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
-              <Label htmlFor="instrumentId">Ticker</Label>
-              <Select
-                value={selectedInstrument?.id ?? ''}
-                onValueChange={handleInstrumentChange}
-                required
-              >
-                <SelectTrigger id="instrumentId">
-                  <SelectValue placeholder="Select ticker" />
-                </SelectTrigger>
-                <SelectContent>
-                  {instruments.map((i) => (
-                    <SelectItem key={i.id} value={i.id}>
-                      {i.ticker} — {i.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Label>Ticker</Label>
+              <TickerSearch
+                defaultTicker={trade?.ticker}
+                value={ticker || undefined}
+                onSelect={(t) => handleTickerSelect(t)}
+                placeholder="Search ticker…"
+              />
             </div>
             <div className="space-y-1">
               <Label htmlFor="symbol">
@@ -234,9 +240,10 @@ export function TradeForm({ open, onOpenChange, accounts, setups, instruments, t
               </Label>
               <Input
                 id="symbol"
-                placeholder={selectedInstrument?.ticker ?? 'SOXL250417P00012000'}
+                placeholder={ticker || 'SOXL250417P00012000'}
                 value={symbol}
                 onChange={handleSymbolChange}
+                onBlur={handleSymbolBlur}
               />
             </div>
           </div>
@@ -268,18 +275,6 @@ export function TradeForm({ open, onOpenChange, accounts, setups, instruments, t
               <DatePicker name="openDate" defaultValue={toDateInput(trade?.openDate) || today()} />
             </div>
           </div>
-
-          {/* Option toggle — only shown when not auto-detected */}
-          {!inferredOption && (
-            <div className="flex items-center gap-2">
-              <Checkbox
-                id="isOption"
-                checked={isOption}
-                onCheckedChange={(v: boolean | 'indeterminate') => setIsOption(!!v)}
-              />
-              <Label htmlFor="isOption" className="cursor-pointer">This is an option trade</Label>
-            </div>
-          )}
 
           {/* Option fields */}
           {showOptionFields && (
@@ -324,23 +319,6 @@ export function TradeForm({ open, onOpenChange, accounts, setups, instruments, t
             <Label htmlFor="notes">Notes</Label>
             <Textarea id="notes" name="notes" defaultValue={trade?.notes ?? ''} rows={4} />
           </div>
-
-          {/* Close fields — only when editing an open trade */}
-          {isEditing && isOpen && (
-            <div className="rounded-md border border-orange-200 bg-orange-50 dark:bg-orange-950/20 p-3 space-y-3">
-              <p className="text-sm font-medium text-orange-800 dark:text-orange-300">Close trade</p>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <Label htmlFor="exitPrice">Exit Price</Label>
-                  <Input id="exitPrice" name="exitPrice" type="number" step="any" defaultValue={String(trade?.exitPrice ?? '')} />
-                </div>
-                <div className="space-y-1">
-                  <Label>Close Date</Label>
-                  <DatePicker name="closeDate" defaultValue={toDateInput(trade?.closeDate) || today()} />
-                </div>
-              </div>
-            </div>
-          )}
 
           {/* Setups */}
           {setups.length > 0 && (

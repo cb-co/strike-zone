@@ -4,9 +4,10 @@ import { calcOpenRisk } from '@/lib/trades'
 import { expectedCumPnL, monthlyBreakdown } from '@/lib/goals'
 import { EquityChart, type EquityDataPoint } from '@/components/equity-chart'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
 import Link from 'next/link'
+import { DashboardOpenPositions, type DashboardPosition } from '@/components/dashboard-open-positions'
+import { AddTradeButton } from '@/components/add-trade-button'
 
 const MONTH_LABELS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
 
@@ -59,34 +60,55 @@ export default async function DashboardPage() {
     return new Date(t.closeDate).getMonth() === currentMonth
   })
 
-  // Open trades for risk calculation
-  const openTrades = await prisma.trade.findMany({
-    where: { userId: user.id, accountId: mainAccount.id, closeDate: null },
-    select: { entryPrice: true, quantity: true, contractSize: true, ticker: true, side: true, expiration: true, projectedProfit: true, openDate: true },
-    orderBy: { openDate: 'asc' },
-    take: 5,
-  })
+  // Open trades — full data for table + actions + risk
+  const [rawOpenTrades, accounts, setups, goal] = await Promise.all([
+    prisma.trade.findMany({
+      where: { userId: user.id, accountId: mainAccount.id, closeDate: null },
+      select: {
+        id: true, name: true, ticker: true, symbol: true,
+        side: true, entryPrice: true, quantity: true, contractSize: true,
+        optionType: true, strike: true, expiration: true,
+        projectedProfit: true, openDate: true, accountId: true, notes: true,
+        tradeSetups: { select: { setupId: true } },
+      },
+      orderBy: { openDate: 'asc' },
+    }),
+    prisma.account.findMany({ where: { userId: user.id }, select: { id: true, name: true } }),
+    prisma.setup.findMany({ where: { userId: user.id }, select: { id: true, name: true } }),
+    prisma.goal.findFirst({ where: { userId: user.id, accountId: mainAccount.id, year: currentYear } }),
+  ])
 
-  // All open trades for risk (not just top 5)
-  const allOpenTrades = await prisma.trade.findMany({
-    where: { userId: user.id, accountId: mainAccount.id, closeDate: null },
-    select: { entryPrice: true, quantity: true, contractSize: true },
-  })
-
-  // Goal for current year
-  const goal = await prisma.goal.findFirst({
-    where: { userId: user.id, accountId: mainAccount.id, year: currentYear },
-  })
+  const openPositions: DashboardPosition[] = rawOpenTrades.map((t) => ({
+    id: t.id,
+    name: t.name,
+    ticker: t.ticker,
+    symbol: t.symbol,
+    side: t.side as 'LONG' | 'SHORT',
+    entryPrice: Number(t.entryPrice),
+    quantity: Number(t.quantity),
+    contractSize: t.contractSize,
+    optionType: t.optionType as 'CALL' | 'PUT' | null,
+    strike: t.strike ? Number(t.strike) : null,
+    expiration: t.expiration?.toISOString() ?? null,
+    projectedProfit: t.projectedProfit ? Number(t.projectedProfit) : null,
+    openDate: t.openDate.toISOString(),
+    accountId: t.accountId,
+    notes: t.notes ?? null,
+    tradeSetups: t.tradeSetups,
+  }))
 
   // KPI calculations
   const monthlyPnl = currentMonthTrades.reduce((s, t) => s + Number(t.netPnl ?? 0), 0)
   const ytdPnl = ytdTrades.reduce((s, t) => s + Number(t.netPnl ?? 0), 0)
   const winningTrades = ytdTrades.filter((t) => Number(t.netPnl ?? 0) > 0).length
   const winRate = ytdTrades.length > 0 ? (winningTrades / ytdTrades.length) * 100 : 0
-  const openRisk = calcOpenRisk(allOpenTrades.map((t) => ({
-    entryPrice: Number(t.entryPrice),
-    quantity: Number(t.quantity),
+  const openRisk = calcOpenRisk(openPositions.map((t) => ({
+    side: t.side,
+    optionType: t.optionType,
+    entryPrice: t.entryPrice,
+    quantity: t.quantity,
     contractSize: t.contractSize,
+    strike: t.strike,
   })))
   const startingBalance = Number(mainAccount.startingBalance)
   const pctReturn = startingBalance > 0 ? (ytdPnl / startingBalance) * 100 : 0
@@ -158,7 +180,10 @@ export default async function DashboardPage() {
 
   return (
     <div className="p-6 space-y-6">
-      <h1 className="text-2xl font-semibold">Dashboard</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-semibold">Dashboard</h1>
+        <AddTradeButton accounts={accounts} setups={setups} />
+      </div>
 
       {/* KPI cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
@@ -258,40 +283,11 @@ export default async function DashboardPage() {
       {/* Open positions — full width */}
       <div className="rounded-lg border p-4 space-y-3">
         <h2 className="text-sm font-medium">Open Positions</h2>
-        {openTrades.length === 0 ? (
-          <p className="text-xs text-muted-foreground">No open trades</p>
-        ) : (
-          <div className="rounded-md border overflow-x-auto">
-            <table className="w-full text-xs">
-              <thead className="border-b bg-muted/50">
-                <tr>
-                  <th className="px-3 py-2 text-left font-medium">Ticker</th>
-                  <th className="px-3 py-2 text-left font-medium">Side</th>
-                  <th className="px-3 py-2 text-right font-medium">Entry</th>
-                  <th className="px-3 py-2 text-right font-medium">Proj. Profit</th>
-                  <th className="px-3 py-2 text-left font-medium">Opened</th>
-                  <th className="px-3 py-2 text-left font-medium">Expiration</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y">
-                {openTrades.map((t, i) => (
-                  <tr key={i}>
-                    <td className="px-3 py-2 font-mono font-medium">{t.ticker}</td>
-                    <td className="px-3 py-2">
-                      <Badge variant={t.side === 'LONG' ? 'default' : 'secondary'} className="text-xs px-1 py-0">{t.side}</Badge>
-                    </td>
-                    <td className="px-3 py-2 text-right">${Number(t.entryPrice).toFixed(2)}</td>
-                    <td className={cn('px-3 py-2 text-right', t.projectedProfit ? (Number(t.projectedProfit) >= 0 ? 'text-green-600' : 'text-red-600') : 'text-muted-foreground')}>
-                      {t.projectedProfit ? `$${Number(t.projectedProfit).toFixed(0)}` : '—'}
-                    </td>
-                    <td className="px-3 py-2 text-muted-foreground">{new Date(t.openDate).toLocaleDateString()}</td>
-                    <td className="px-3 py-2 text-muted-foreground">{t.expiration ? new Date(t.expiration).toLocaleDateString() : '—'}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+        <DashboardOpenPositions
+          positions={openPositions}
+          accounts={accounts}
+          setups={setups}
+        />
       </div>
     </div>
   )

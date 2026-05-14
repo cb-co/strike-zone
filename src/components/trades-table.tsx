@@ -15,6 +15,8 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { deleteTrade } from '@/actions/trades'
 import { TradeForm, type TradeFormTrade } from '@/components/trade-form'
+import { CloseTradeDialog } from '@/components/close-trade-dialog'
+import { RollTradeDialog } from '@/components/roll-trade-dialog'
 
 export type TableTrade = {
   id: string
@@ -44,7 +46,6 @@ type Props = {
   variant: 'closed' | 'open' | 'losses'
   accounts: { id: string; name: string }[]
   setups: { id: string; name: string }[]
-  instruments: { id: string; ticker: string; name: string }[]
 }
 
 function fmt(n: number | null | undefined, decimals = 2) {
@@ -60,12 +61,14 @@ function daysBetween(a: Date, b: Date) {
   return Math.floor((new Date(b).getTime() - new Date(a).getTime()) / 86_400_000)
 }
 
-export function TradesTable({ trades, variant, accounts, setups, instruments }: Props) {
+export function TradesTable({ trades, variant, accounts, setups }: Props) {
   const [sorting, setSorting] = useState<SortingState>(
     variant === 'losses' ? [{ id: 'netPnl', desc: false }] : []
   )
   const [globalFilter, setGlobalFilter] = useState('')
   const [editTrade, setEditTrade] = useState<TableTrade | null>(null)
+  const [closingTrade, setClosingTrade] = useState<TableTrade | null>(null)
+  const [rollingTrade, setRollingTrade] = useState<TableTrade | null>(null)
 
   const filteredTrades = variant === 'losses'
     ? trades.filter((t) => (t.netPnl ?? 0) < 0)
@@ -208,6 +211,12 @@ export function TradesTable({ trades, variant, accounts, setups, instruments }: 
                 <td className="px-3 py-2">
                   <div className="flex justify-end gap-1">
                     <Button size="sm" variant="outline" onClick={() => setEditTrade(row.original)}>Edit</Button>
+                    {variant === 'open' && (
+                      <Button size="sm" variant="outline" onClick={() => setClosingTrade(row.original)}>Close</Button>
+                    )}
+                    {variant === 'open' && row.original.optionType && (
+                      <Button size="sm" variant="outline" onClick={() => setRollingTrade(row.original)}>Roll</Button>
+                    )}
                     <Button size="sm" variant="destructive" onClick={() => deleteTrade(row.original.id)}>Del</Button>
                   </div>
                 </td>
@@ -227,8 +236,47 @@ export function TradesTable({ trades, variant, accounts, setups, instruments }: 
           onOpenChange={(o) => { if (!o) setEditTrade(null) }}
           accounts={accounts}
           setups={setups}
-          instruments={instruments}
           trade={editTrade as TradeFormTrade}
+        />
+      )}
+
+      {closingTrade && (
+        <CloseTradeDialog
+          key={`close-${closingTrade.id}`}
+          open={!!closingTrade}
+          onOpenChange={(o) => { if (!o) setClosingTrade(null) }}
+          trade={{
+            id: closingTrade.id,
+            ticker: closingTrade.ticker,
+            symbol: closingTrade.symbol,
+            side: closingTrade.side,
+            entryPrice: closingTrade.entryPrice,
+            quantity: closingTrade.quantity,
+            contractSize: closingTrade.contractSize,
+            optionType: closingTrade.optionType,
+            projectedProfit: closingTrade.projectedProfit,
+          }}
+        />
+      )}
+
+      {rollingTrade && (
+        <RollTradeDialog
+          key={`roll-${rollingTrade.id}`}
+          open={!!rollingTrade}
+          onOpenChange={(o) => { if (!o) setRollingTrade(null) }}
+          trade={{
+            id: rollingTrade.id,
+            ticker: rollingTrade.ticker,
+            symbol: rollingTrade.symbol,
+            side: rollingTrade.side,
+            entryPrice: rollingTrade.entryPrice,
+            quantity: rollingTrade.quantity,
+            contractSize: rollingTrade.contractSize,
+            optionType: rollingTrade.optionType,
+            strike: rollingTrade.strike,
+            expiration: rollingTrade.expiration ? new Date(rollingTrade.expiration).toISOString() : null,
+            projectedProfit: rollingTrade.projectedProfit,
+          }}
         />
       )}
     </div>

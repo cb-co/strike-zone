@@ -12,7 +12,6 @@ import {
   Target01Icon,
   Calendar01Icon,
   Wallet01Icon,
-  AnalyticsUpIcon,
   Settings01Icon,
   Logout01Icon,
   Moon01Icon,
@@ -26,7 +25,6 @@ const navItems = [
   { href: '/goals', label: 'Goals', icon: Target01Icon },
   { href: '/monthly', label: 'Monthly', icon: Calendar01Icon },
   { href: '/accounts', label: 'Accounts', icon: Wallet01Icon },
-  { href: '/instruments', label: 'Instruments', icon: AnalyticsUpIcon },
   { href: '/system', label: 'System', icon: Settings01Icon },
 ]
 

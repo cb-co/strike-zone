@@ -87,16 +87,27 @@ export async function updateTrade(id: string, formData: FormData) {
     throw new Error('Options require strike price and expiration date')
   }
 
-  // If closing the trade, compute netPnl
-  let netPnl: number | null = null
+  // Preserve existing close data — edit form no longer contains close fields
+  const existing = await prisma.trade.findUnique({
+    where: { id, userId },
+    select: { exitPrice: true, closeDate: true, netPnl: true },
+  })
+
+  let exitPrice = existing?.exitPrice ?? null
+  let closeDate = existing?.closeDate ?? null
+  let netPnl = existing?.netPnl ?? null
+
   if (data.exitPrice && data.closeDate) {
-    netPnl = calcNetPnl({
+    const computed = calcNetPnl({
       side: data.side,
       entryPrice: data.entryPrice,
       exitPrice: data.exitPrice,
       quantity: data.quantity,
       contractSize: data.contractSize,
     })
+    exitPrice = data.exitPrice as unknown as typeof exitPrice
+    closeDate = new Date(data.closeDate) as unknown as typeof closeDate
+    netPnl = computed as unknown as typeof netPnl
   }
 
   await prisma.trade.update({
@@ -117,9 +128,9 @@ export async function updateTrade(id: string, formData: FormData) {
       strike: data.strike ?? null,
       expiration: data.expiration ? new Date(data.expiration) : null,
       contractSize: data.contractSize ?? null,
-      exitPrice: data.exitPrice ?? null,
-      closeDate: data.closeDate ? new Date(data.closeDate) : null,
-      netPnl: netPnl,
+      exitPrice,
+      closeDate,
+      netPnl,
     },
   })
 
@@ -153,6 +164,83 @@ export async function closeTrade(id: string, exitPrice: number, closeDate: strin
       netPnl,
     },
   })
+
+  revalidateTrades()
+}
+
+const rollSchema = z.object({
+  netCredit: z.coerce.number(), // positive = credit received, negative = debit paid
+  rollDate: z.string().min(1),
+  newEntryPrice: z.coerce.number().positive(),
+  newStrike: z.coerce.number().optional().nullable(),
+  newExpiration: z.string().min(1).optional().nullable(),
+  newContractSize: z.coerce.number().int().optional().nullable(),
+})
+
+export async function rollTrade(id: string, formData: FormData) {
+  const userId = await getUserId()
+  const raw = Object.fromEntries(formData)
+  const data = rollSchema.parse(raw)
+
+  const original = await prisma.trade.findUnique({ where: { id, userId } })
+  if (!original) throw new Error('Trade not found')
+
+  const contractSize = data.newContractSize ?? original.contractSize
+  const qty = Number(original.quantity)
+  const mult = contractSize ?? 1
+
+  // netCredit is per-contract option price (e.g. 3.2 = $3.20/contract)
+  // exitPrice = newEntry − netCreditPerContract  [SHORT]
+  // exitPrice = newEntry + netCreditPerContract  [LONG]
+  const exitPrice =
+    original.side === 'SHORT'
+      ? data.newEntryPrice - data.netCredit
+      : data.newEntryPrice + data.netCredit
+
+  const netPnl = calcNetPnl({
+    side: original.side,
+    entryPrice: Number(original.entryPrice),
+    exitPrice,
+    quantity: qty,
+    contractSize: original.contractSize,
+  })
+
+  const projectedProfit =
+    original.side === 'SHORT' && contractSize
+      ? data.newEntryPrice * qty * contractSize
+      : null
+
+  await prisma.$transaction([
+    prisma.trade.update({
+      where: { id, userId },
+      data: {
+        exitPrice,
+        closeDate: new Date(data.rollDate),
+        netPnl,
+      },
+    }),
+    prisma.trade.create({
+      data: {
+        userId,
+        accountId: original.accountId,
+        name: original.name + ' →Roll',
+        ticker: original.ticker,
+        symbol: original.ticker, // user can update symbol after
+        side: original.side,
+        quantity: qty,
+        entryPrice: data.newEntryPrice,
+        openDate: new Date(data.rollDate),
+        source: 'MANUAL',
+        notes: original.notes,
+        instrumentId: original.instrumentId,
+        optionType: original.optionType,
+        strike: data.newStrike ?? original.strike,
+        expiration: data.newExpiration ? new Date(data.newExpiration) : original.expiration,
+        contractSize,
+        projectedProfit,
+      },
+    }),
+  ])
 
   revalidateTrades()
 }

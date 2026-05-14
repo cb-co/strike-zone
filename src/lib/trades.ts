@@ -15,14 +15,26 @@ export function calcNetPnl(t: TradeForPnl): number {
 }
 
 export type OpenTrade = {
+  side: 'LONG' | 'SHORT'
+  optionType?: 'CALL' | 'PUT' | null
   entryPrice: number
   quantity: number
   contractSize?: number | null
+  strike?: number | null
 }
 
 export function calcOpenRisk(trades: OpenTrade[]): number {
-  return trades.reduce(
-    (sum, t) => sum + t.entryPrice * t.quantity * (t.contractSize ?? 1),
-    0
-  )
+  return trades.reduce((sum, t) => {
+    const mult = t.contractSize ?? 1
+    if (t.side === 'SHORT') {
+      if (t.optionType === 'PUT' && t.strike != null) {
+        // Short put: max risk = (strike − premium per share) × qty × mult
+        return sum + (t.strike - t.entryPrice) * t.quantity * mult
+      }
+      // Short call or naked short: indeterminate, exclude
+      return sum
+    }
+    // Long stock or long option: max loss = cost paid
+    return sum + t.entryPrice * t.quantity * mult
+  }, 0)
 }
