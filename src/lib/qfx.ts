@@ -18,10 +18,24 @@ export type QfxOptionTx = {
 
 export type MergedTx = Omit<QfxOptionTx, 'fitId'> & { fitIds: string[] }
 
+export type QfxStockTx = {
+  fitId: string
+  tradeDate: string
+  ticker: string
+  quantity: number      // always positive
+  unitPrice: number
+  commission: number
+  netTotal: number
+  action: 'BUY' | 'SELL'
+}
+
+export type MergedStockTx = Omit<QfxStockTx, 'fitId'> & { fitIds: string[] }
+
 export type QfxParseResult = {
   brokerAccountId: string
   dateRange: { start: string; end: string }
   transactions: QfxOptionTx[]
+  stockTransactions: QfxStockTx[]
   errors: string[]
 }
 
@@ -79,6 +93,57 @@ function underlyingTicker(occSymbol: string): string {
   const match = occSymbol.match(/^([A-Z]+)\d{6}[CP]/)
   if (match) return match[1]
   return occSymbol
+}
+
+export function buildTickerMap(content: string): Map<string, string> {
+  const map = new Map<string, string>()
+  const secInfoBlocks = extractBlocks(content, 'SECINFO')
+  for (const block of secInfoBlocks) {
+    const uniqueId = extractField(block, 'UNIQUEID')
+    if (!uniqueId) continue
+    const ticker = extractField(block, 'TICKER')
+    if (!ticker) continue
+    map.set(uniqueId, ticker)
+  }
+  return map
+}
+
+function parseStockBlock(
+  block: string,
+  tickerMap: Map<string, string>,
+  isBuy: boolean
+): QfxStockTx | null {
+  const innerTag = isBuy ? 'INVBUY' : 'INVSELL'
+  const inner = extractBlocks(block, innerTag)[0] ?? block
+
+  const invTranBlock = extractBlocks(inner, 'INVTRAN')[0] ?? inner
+  const fitId = extractField(invTranBlock, 'FITID')
+  const dtTrade = extractField(invTranBlock, 'DTTRADE')
+  const tradeDate = dtTrade ? parseOFXDate(dtTrade) : ''
+
+  const secIdBlock = extractBlocks(inner, 'SECID')[0] ?? inner
+  const uniqueId = extractField(secIdBlock, 'UNIQUEID')
+
+  if (!uniqueId) return null
+
+  const ticker = tickerMap.get(uniqueId)
+  if (!ticker) return null
+
+  const units = parseFloat(extractField(inner, 'UNITS') || '0')
+  const unitPrice = parseFloat(extractField(inner, 'UNITPRICE') || '0')
+  const commission = parseFloat(extractField(inner, 'COMMISSION') || '0')
+  const total = parseFloat(extractField(inner, 'TOTAL') || '0')
+
+  return {
+    fitId,
+    tradeDate,
+    ticker,
+    quantity: Math.abs(units),
+    unitPrice,
+    commission,
+    netTotal: total,
+    action: isBuy ? 'BUY' : 'SELL',
+  }
 }
 
 function buildSecMap(content: string): Map<string, SecInfo> {
@@ -178,6 +243,7 @@ export function parseQfx(content: string): QfxParseResult {
   }
 
   const secMap = buildSecMap(content)
+  const tickerMap = buildTickerMap(content)
 
   const transactions: QfxOptionTx[] = []
 
@@ -201,7 +267,77 @@ export function parseQfx(content: string): QfxParseResult {
     return 0
   })
 
-  return { brokerAccountId, dateRange, transactions, errors }
+  const stockTransactions: QfxStockTx[] = []
+
+  const buyStockBlocks = extractBlocks(content, 'BUYSTOCK')
+  for (const block of buyStockBlocks) {
+    const tx = parseStockBlock(block, tickerMap, true)
+    if (tx) stockTransactions.push(tx)
+  }
+
+  const sellStockBlocks = extractBlocks(content, 'SELLSTOCK')
+  for (const block of sellStockBlocks) {
+    const tx = parseStockBlock(block, tickerMap, false)
+    if (tx) stockTransactions.push(tx)
+  }
+
+  stockTransactions.sort((a, b) => {
+    if (a.tradeDate < b.tradeDate) return -1
+    if (a.tradeDate > b.tradeDate) return 1
+    if (a.fitId < b.fitId) return -1
+    if (a.fitId > b.fitId) return 1
+    return 0
+  })
+
+  return { brokerAccountId, dateRange, transactions, stockTransactions, errors }
+}
+
+export function mergeStockFills(transactions: QfxStockTx[]): MergedStockTx[] {
+  const groups = new Map<string, QfxStockTx[]>()
+
+  for (const tx of transactions) {
+    const key = `${tx.ticker}|${tx.tradeDate}|${tx.action}`
+    const group = groups.get(key)
+    if (group) {
+      group.push(tx)
+    } else {
+      groups.set(key, [tx])
+    }
+  }
+
+  const merged: MergedStockTx[] = []
+
+  for (const group of groups.values()) {
+    if (group.length === 1) {
+      const { fitId, ...rest } = group[0]
+      merged.push({ ...rest, fitIds: [fitId] })
+      continue
+    }
+
+    const totalQuantity = group.reduce((sum, tx) => sum + tx.quantity, 0)
+    const weightedPrice = Math.round(group.reduce((sum, tx) => sum + tx.unitPrice * tx.quantity, 0) / totalQuantity * 100) / 100
+    const totalCommission = group.reduce((sum, tx) => sum + tx.commission, 0)
+    const totalNetTotal = group.reduce((sum, tx) => sum + tx.netTotal, 0)
+    const fitIds = group.map(tx => tx.fitId)
+
+    const { fitId: _fitId, ...base } = group[0]
+    merged.push({
+      ...base,
+      quantity: totalQuantity,
+      unitPrice: weightedPrice,
+      commission: totalCommission,
+      netTotal: totalNetTotal,
+      fitIds,
+    })
+  }
+
+  merged.sort((a, b) => {
+    if (a.tradeDate < b.tradeDate) return -1
+    if (a.tradeDate > b.tradeDate) return 1
+    return 0
+  })
+
+  return merged
 }
 
 export function mergeSplitFills(transactions: QfxOptionTx[]): MergedTx[] {

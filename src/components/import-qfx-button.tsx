@@ -4,15 +4,19 @@ import { useState, useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { parseQfx, mergeSplitFills, type MergedTx } from '@/lib/qfx'
-import { importQfxTrades, type ImportResult } from '@/actions/import-trades'
+import { parseQfx, mergeSplitFills, mergeStockFills, type MergedTx, type MergedStockTx } from '@/lib/qfx'
+import { importQfxTrades, type ImportRecord, type ImportResult } from '@/actions/import-trades'
 import { cn } from '@/lib/utils'
 
 type Account = { id: string; name: string }
 type Props = { accounts: Account[] }
 type Phase = 'idle' | 'preview' | 'importing' | 'done'
 
-function processFile(file: File, onSuccess: (merged: MergedTx[], errors: string[]) => void, onError: (msg: string) => void) {
+function processFile(
+  file: File,
+  onSuccess: (merged: MergedTx[], stockMerged: MergedStockTx[], errors: string[]) => void,
+  onError: (msg: string) => void
+) {
   const ext = file.name.split('.').pop()?.toLowerCase()
   if (ext !== 'qfx' && ext !== 'ofx') {
     onError('Please upload a .qfx or .ofx file from TradeStation')
@@ -23,11 +27,15 @@ function processFile(file: File, onSuccess: (merged: MergedTx[], errors: string[
     const content = ev.target?.result as string
     try {
       const parsed = parseQfx(content)
-      if (parsed.transactions.length === 0) {
-        onError('No option transactions found in this file')
+      if (parsed.transactions.length === 0 && parsed.stockTransactions.length === 0) {
+        onError('No transactions found in this file')
         return
       }
-      onSuccess(mergeSplitFills(parsed.transactions), parsed.errors)
+      onSuccess(
+        mergeSplitFills(parsed.transactions),
+        mergeStockFills(parsed.stockTransactions),
+        parsed.errors
+      )
     } catch (err) {
       onError(err instanceof Error ? err.message : 'Failed to parse file')
     }
@@ -46,6 +54,7 @@ export function ImportQfxButton({ accounts }: Props) {
   const [open, setOpen]           = useState(false)
   const [phase, setPhase]         = useState<Phase>('idle')
   const [merged, setMerged]       = useState<MergedTx[]>([])
+  const [stockMerged, setStockMerged] = useState<MergedStockTx[]>([])
   const [parseErrors, setParseErrors] = useState<string[]>([])
   const [accountId, setAccountId] = useState(accounts[0]?.id ?? '')
   const [result, setResult]       = useState<ImportResult | null>(null)
@@ -56,6 +65,7 @@ export function ImportQfxButton({ accounts }: Props) {
   function reset() {
     setPhase('idle')
     setMerged([])
+    setStockMerged([])
     setParseErrors([])
     setResult(null)
     setError(null)
@@ -67,8 +77,9 @@ export function ImportQfxButton({ accounts }: Props) {
     if (!v) reset()
   }
 
-  function handleSuccess(m: MergedTx[], errs: string[]) {
+  function handleSuccess(m: MergedTx[], sm: MergedStockTx[], errs: string[]) {
     setMerged(m)
+    setStockMerged(sm)
     setParseErrors(errs)
     setPhase('preview')
     setError(null)
@@ -92,19 +103,32 @@ export function ImportQfxButton({ accounts }: Props) {
     setPhase('importing')
     setError(null)
     try {
-      const records = merged.map((tx) => ({
-        symbol:      tx.symbol,
-        ticker:      tx.ticker,
-        optionType:  tx.optionType,
-        strike:      tx.strike,
-        expiration:  tx.expiration,
-        contracts:   tx.contracts,
-        unitPrice:   tx.unitPrice,
-        date:        tx.tradeDate,
-        action:      tx.action,
-        netTotal:    tx.netTotal,
+      const optionRecords: ImportRecord[] = merged.map((tx) => ({
+        instrumentType: 'OPTION',
+        symbol:       tx.symbol,
+        ticker:       tx.ticker,
+        optionType:   tx.optionType,
+        strike:       tx.strike,
+        expiration:   tx.expiration,
+        quantity:     tx.contracts,
+        unitPrice:    tx.unitPrice,
+        date:         tx.tradeDate,
+        action:       tx.action,
+        netTotal:     tx.netTotal,
         contractSize: tx.contractSize,
       }))
+      const stockRecords: ImportRecord[] = stockMerged.map((tx) => ({
+        instrumentType: 'STOCK',
+        symbol:       tx.ticker,
+        ticker:       tx.ticker,
+        quantity:     tx.quantity,
+        unitPrice:    tx.unitPrice,
+        date:         tx.tradeDate,
+        action:       tx.action,
+        netTotal:     tx.netTotal,
+        contractSize: 1,
+      }))
+      const records = [...optionRecords, ...stockRecords]
       const res = await importQfxTrades(accountId, records)
       setResult(res)
       setPhase('done')
@@ -167,6 +191,11 @@ export function ImportQfxButton({ accounts }: Props) {
                 <span className="rounded-full bg-rose-50 text-rose-700 ring-1 ring-rose-200 px-2.5 py-0.5 font-medium">
                   {closes.length} closes
                 </span>
+                {stockMerged.length > 0 && (
+                  <span className="rounded-full bg-blue-50 text-blue-700 ring-1 ring-blue-200 px-2.5 py-0.5 font-medium">
+                    {stockMerged.length} stocks
+                  </span>
+                )}
                 {parseErrors.length > 0 && (
                   <span className="rounded-full bg-amber-50 text-amber-700 ring-1 ring-amber-200 px-2.5 py-0.5 font-medium">
                     {parseErrors.length} warnings
@@ -190,59 +219,103 @@ export function ImportQfxButton({ accounts }: Props) {
               </div>
 
               {/* Preview table */}
-              <div className="rounded-md border overflow-x-auto">
-                <table className="w-full text-xs">
-                  <thead className="border-b bg-muted/50">
-                    <tr>
-                      <th className="px-3 py-2 text-left font-medium text-muted-foreground">Date</th>
-                      <th className="px-3 py-2 text-left font-medium text-muted-foreground">Symbol</th>
-                      <th className="px-3 py-2 text-left font-medium text-muted-foreground">Action</th>
-                      <th className="px-3 py-2 text-right font-medium text-muted-foreground">Qty</th>
-                      <th className="px-3 py-2 text-right font-medium text-muted-foreground">Avg Price</th>
-                      <th className="px-3 py-2 text-right font-medium text-muted-foreground">Net</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y">
-                    {merged.map((tx, i) => {
-                      const isOpen = tx.action === 'SELLTOOPEN' || tx.action === 'BUYTOOPEN'
-                      const isShortOpen = tx.action === 'SELLTOOPEN'
-                      return (
-                        <tr key={i} className="hover:bg-muted/30 transition-colors">
-                          <td className="px-3 py-1.5 tabular-nums text-muted-foreground">
-                            {new Date(tx.tradeDate + 'T12:00:00Z').toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' })}
-                          </td>
-                          <td className="px-3 py-1.5 font-mono">{tx.symbol}</td>
-                          <td className="px-3 py-1.5">
-                            <span className={cn(
-                              'inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide ring-1',
-                              isShortOpen ? 'bg-emerald-50 text-emerald-700 ring-emerald-200' :
-                              isOpen      ? 'bg-blue-50    text-blue-700    ring-blue-200'    :
-                                            'bg-rose-50    text-rose-700    ring-rose-200',
-                            )}>
-                              {ACTION_LABEL[tx.action]}
-                            </span>
-                          </td>
-                          <td className="px-3 py-1.5 text-right tabular-nums">{tx.contracts}</td>
-                          <td className="px-3 py-1.5 text-right tabular-nums">${tx.unitPrice.toFixed(2)}</td>
-                          <td className={cn(
-                            'px-3 py-1.5 text-right tabular-nums font-medium',
-                            tx.netTotal >= 0 ? 'text-emerald-600' : 'text-rose-600',
-                          )}>
-                            {tx.netTotal >= 0 ? '+' : ''}${Math.abs(tx.netTotal).toFixed(2)}
-                          </td>
+              {(() => {
+                type OptionRow = MergedTx & { _type: 'option' }
+                type StockRow = MergedStockTx & { _type: 'stock' }
+                type CombinedRow = OptionRow | StockRow
+
+                const optionRows: OptionRow[] = merged.map((tx) => ({ ...tx, _type: 'option' as const }))
+                const stockRows: StockRow[] = stockMerged.map((tx) => ({ ...tx, _type: 'stock' as const }))
+                const allRows: CombinedRow[] = [...optionRows, ...stockRows].sort((a, b) => {
+                  if (a.tradeDate < b.tradeDate) return -1
+                  if (a.tradeDate > b.tradeDate) return 1
+                  return 0
+                })
+
+                return (
+                  <div className="rounded-md border overflow-x-auto">
+                    <table className="w-full text-xs">
+                      <thead className="border-b bg-muted/50">
+                        <tr>
+                          <th className="px-3 py-2 text-left font-medium text-muted-foreground">Date</th>
+                          <th className="px-3 py-2 text-left font-medium text-muted-foreground">Symbol</th>
+                          <th className="px-3 py-2 text-left font-medium text-muted-foreground">Action</th>
+                          <th className="px-3 py-2 text-right font-medium text-muted-foreground">Qty</th>
+                          <th className="px-3 py-2 text-right font-medium text-muted-foreground">Avg Price</th>
+                          <th className="px-3 py-2 text-right font-medium text-muted-foreground">Net</th>
                         </tr>
-                      )
-                    })}
-                  </tbody>
-                </table>
-              </div>
+                      </thead>
+                      <tbody className="divide-y">
+                        {allRows.map((tx, i) => {
+                          if (tx._type === 'stock') {
+                            const isBuy = tx.action === 'BUY'
+                            return (
+                              <tr key={`s-${i}`} className="hover:bg-muted/30 transition-colors">
+                                <td className="px-3 py-1.5 tabular-nums text-muted-foreground">
+                                  {new Date(tx.tradeDate + 'T12:00:00Z').toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' })}
+                                </td>
+                                <td className="px-3 py-1.5 font-mono">{tx.ticker}</td>
+                                <td className="px-3 py-1.5">
+                                  <span className={cn(
+                                    'inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide ring-1',
+                                    isBuy ? 'bg-blue-50 text-blue-700 ring-blue-200' : 'bg-muted/80 text-muted-foreground ring-border',
+                                  )}>
+                                    {isBuy ? 'Buy' : 'Sell'}
+                                  </span>
+                                </td>
+                                <td className="px-3 py-1.5 text-right tabular-nums">{tx.quantity}</td>
+                                <td className="px-3 py-1.5 text-right tabular-nums">${tx.unitPrice.toFixed(2)}</td>
+                                <td className={cn(
+                                  'px-3 py-1.5 text-right tabular-nums font-medium',
+                                  tx.netTotal >= 0 ? 'text-emerald-600' : 'text-rose-600',
+                                )}>
+                                  {tx.netTotal >= 0 ? '+' : ''}${Math.abs(tx.netTotal).toFixed(2)}
+                                </td>
+                              </tr>
+                            )
+                          }
+
+                          const isOpen = tx.action === 'SELLTOOPEN' || tx.action === 'BUYTOOPEN'
+                          const isShortOpen = tx.action === 'SELLTOOPEN'
+                          return (
+                            <tr key={`o-${i}`} className="hover:bg-muted/30 transition-colors">
+                              <td className="px-3 py-1.5 tabular-nums text-muted-foreground">
+                                {new Date(tx.tradeDate + 'T12:00:00Z').toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' })}
+                              </td>
+                              <td className="px-3 py-1.5 font-mono">{tx.symbol}</td>
+                              <td className="px-3 py-1.5">
+                                <span className={cn(
+                                  'inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide ring-1',
+                                  isShortOpen ? 'bg-emerald-50 text-emerald-700 ring-emerald-200' :
+                                  isOpen      ? 'bg-blue-50    text-blue-700    ring-blue-200'    :
+                                                'bg-rose-50    text-rose-700    ring-rose-200',
+                                )}>
+                                  {ACTION_LABEL[tx.action]}
+                                </span>
+                              </td>
+                              <td className="px-3 py-1.5 text-right tabular-nums">{tx.contracts}</td>
+                              <td className="px-3 py-1.5 text-right tabular-nums">${tx.unitPrice.toFixed(2)}</td>
+                              <td className={cn(
+                                'px-3 py-1.5 text-right tabular-nums font-medium',
+                                tx.netTotal >= 0 ? 'text-emerald-600' : 'text-rose-600',
+                              )}>
+                                {tx.netTotal >= 0 ? '+' : ''}${Math.abs(tx.netTotal).toFixed(2)}
+                              </td>
+                            </tr>
+                          )
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                )
+              })()}
 
               {error && <p className="text-sm text-destructive">{error}</p>}
 
               <div className="flex justify-end gap-2">
                 <Button variant="outline" onClick={() => handleOpenChange(false)}>Cancel</Button>
-                <Button onClick={handleImport} disabled={merged.length === 0 || !accountId}>
-                  Import {merged.length} records
+                <Button onClick={handleImport} disabled={(merged.length === 0 && stockMerged.length === 0) || !accountId}>
+                  Import {merged.length + stockMerged.length} records
                 </Button>
               </div>
             </div>

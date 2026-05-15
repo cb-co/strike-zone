@@ -160,7 +160,7 @@ export function TradeForm({ open, onOpenChange, accounts, setups, trade }: Props
       fd.delete('optionType')
       fd.delete('strike')
       fd.delete('expiration')
-      fd.delete('contractSize')
+      fd.set('contractSize', '1')
     }
 
     fd.set('setupIds', JSON.stringify([...selectedSetups]))
@@ -245,6 +245,16 @@ export function TradeForm({ open, onOpenChange, accounts, setups, trade }: Props
                 onChange={handleSymbolChange}
                 onBlur={handleSymbolBlur}
               />
+              {!showOptionFields && (
+                <button type="button" onClick={() => setIsOption(true)} className="text-xs text-primary hover:underline">
+                  Mark as option
+                </button>
+              )}
+              {showOptionFields && !inferredOption && (
+                <button type="button" onClick={() => { setIsOption(false); setInferredOption(null) }} className="text-xs text-muted-foreground hover:underline">
+                  Remove option fields
+                </button>
+              )}
             </div>
           </div>
 

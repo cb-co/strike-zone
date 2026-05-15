@@ -7,17 +7,18 @@ import { calcNetPnl } from '@/lib/trades'
 import type { TradeSide, OptionType } from '@/generated/prisma/enums'
 
 export type ImportRecord = {
-  symbol: string
+  instrumentType: 'STOCK' | 'OPTION'
+  symbol: string         // OCC symbol for options, ticker for stocks
   ticker: string
-  optionType: 'CALL' | 'PUT'
-  strike: number
-  expiration: string         // YYYY-MM-DD
-  contracts: number
+  optionType?: 'CALL' | 'PUT'
+  strike?: number
+  expiration?: string    // YYYY-MM-DD, options only
+  quantity: number       // contracts for options, shares for stocks
   unitPrice: number
-  date: string               // YYYY-MM-DD
-  action: 'SELLTOOPEN' | 'SELLTOCLOSE' | 'BUYTOOPEN' | 'BUYTOCLOSE'
+  date: string           // YYYY-MM-DD
+  action: 'BUY' | 'SELL' | 'SELLTOOPEN' | 'SELLTOCLOSE' | 'BUYTOOPEN' | 'BUYTOCLOSE'
   netTotal: number
-  contractSize: number
+  contractSize: number   // 100 for options, 1 for stocks
 }
 
 export type ImportResult = {
@@ -34,8 +35,9 @@ const MONTH_NAMES = [
 ]
 
 function tradeName(rec: ImportRecord): string {
+  if (rec.instrumentType === 'STOCK') return rec.ticker
   // Parse expiration manually to avoid timezone issues
-  const [, monthStr, dayStr] = rec.expiration.split('-')
+  const [, monthStr, dayStr] = (rec.expiration ?? '').split('-')
   const monthIndex = parseInt(monthStr, 10) - 1
   const day = parseInt(dayStr, 10)
   const monthName = MONTH_NAMES[monthIndex] ?? monthStr
@@ -65,7 +67,8 @@ export async function importQfxTrades(
 
   // Sort chronologically; within the same date closes run before opens so a
   // close with no matching open gets skipped before the new open is created.
-  const isClose = (r: ImportRecord) => r.action === 'BUYTOCLOSE' || r.action === 'SELLTOCLOSE'
+  const isClose = (r: ImportRecord) =>
+    r.action === 'BUYTOCLOSE' || r.action === 'SELLTOCLOSE' || r.action === 'SELL'
   const sorted = [...records].sort((a, b) => {
     if (a.date < b.date) return -1
     if (a.date > b.date) return 1
@@ -80,19 +83,24 @@ export async function importQfxTrades(
   const errors: string[] = []
 
   for (const rec of sorted) {
-    if (rec.action === 'SELLTOOPEN' || rec.action === 'BUYTOOPEN') {
-      const side: TradeSide = rec.action === 'SELLTOOPEN' ? 'SHORT' : 'LONG'
+    const isOpenAction = rec.action === 'SELLTOOPEN' || rec.action === 'BUYTOOPEN' || rec.action === 'BUY'
+
+    if (isOpenAction) {
+      // Determine side
+      let side: TradeSide
+      if (rec.action === 'SELLTOOPEN') side = 'SHORT'
+      else side = 'LONG' // BUYTOOPEN or BUY (stock)
 
       const existing = await prisma.trade.findFirst({
-        where: { userId, accountId, symbol: rec.symbol, closeDate: null },
+        where: { userId, accountId, symbol: rec.symbol, closeDate: null, side },
       })
 
       if (existing) {
-        // Add to position: weighted-average the entry price, accumulate contracts
+        // Add to position: weighted-average the entry price, accumulate quantity
         const existingQty = Number(existing.quantity)
-        const newQty = existingQty + rec.contracts
+        const newQty = existingQty + rec.quantity
         const newEntry = Math.round(
-          ((Number(existing.entryPrice) * existingQty) + (rec.unitPrice * rec.contracts)) / newQty * 100
+          ((Number(existing.entryPrice) * existingQty) + (rec.unitPrice * rec.quantity)) / newQty * 100
         ) / 100
         const newProjectedProfit = existing.side === 'SHORT'
           ? newEntry * newQty * (existing.contractSize ?? 100)
@@ -103,37 +111,60 @@ export async function importQfxTrades(
           data: { quantity: newQty, entryPrice: newEntry, projectedProfit: newProjectedProfit },
         })
       } else {
-        const projectedProfit = side === 'SHORT'
-          ? rec.unitPrice * rec.contracts * rec.contractSize
-          : null
+        if (rec.instrumentType === 'STOCK') {
+          await prisma.trade.create({
+            data: {
+              userId,
+              accountId,
+              name: tradeName(rec),
+              ticker: rec.ticker,
+              symbol: rec.symbol,
+              side: 'LONG',
+              quantity: rec.quantity,
+              entryPrice: rec.unitPrice,
+              openDate: new Date(rec.date),
+              source: 'TS_IMPORT',
+              contractSize: 1,
+            },
+          })
+        } else {
+          const projectedProfit = side === 'SHORT'
+            ? rec.unitPrice * rec.quantity * rec.contractSize
+            : null
 
-        await prisma.trade.create({
-          data: {
-            userId,
-            accountId,
-            name: tradeName(rec),
-            ticker: rec.ticker,
-            symbol: rec.symbol,
-            side,
-            quantity: rec.contracts,
-            entryPrice: rec.unitPrice,
-            openDate: new Date(rec.date),
-            source: 'TS_IMPORT',
-            optionType: rec.optionType as OptionType,
-            strike: rec.strike,
-            expiration: new Date(rec.expiration),
-            contractSize: rec.contractSize,
-            projectedProfit,
-          },
-        })
+          await prisma.trade.create({
+            data: {
+              userId,
+              accountId,
+              name: tradeName(rec),
+              ticker: rec.ticker,
+              symbol: rec.symbol,
+              side,
+              quantity: rec.quantity,
+              entryPrice: rec.unitPrice,
+              openDate: new Date(rec.date),
+              source: 'TS_IMPORT',
+              optionType: rec.optionType as OptionType,
+              strike: rec.strike,
+              expiration: new Date(rec.expiration!),
+              contractSize: rec.contractSize,
+              projectedProfit,
+            },
+          })
+        }
         created++
       }
       continue
     }
 
+    // Close — determine which side we're closing
+    let closingSide: TradeSide
+    if (rec.action === 'BUYTOCLOSE') closingSide = 'SHORT'
+    else closingSide = 'LONG' // SELLTOCLOSE or SELL (stock)
+
     // Close — quantity-aware, supports partial closes
     const openTrade = await prisma.trade.findFirst({
-      where: { userId, accountId, symbol: rec.symbol, closeDate: null },
+      where: { userId, accountId, symbol: rec.symbol, closeDate: null, side: closingSide },
     })
 
     if (!openTrade) {
@@ -142,7 +173,7 @@ export async function importQfxTrades(
     }
 
     const tradeQty = Number(openTrade.quantity)
-    const closeQty = Math.min(rec.contracts, tradeQty)
+    const closeQty = Math.min(rec.quantity, tradeQty)
 
     const netPnl = calcNetPnl({
       side: openTrade.side as 'LONG' | 'SHORT',
