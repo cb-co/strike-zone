@@ -252,7 +252,7 @@ export function ImportQfxButton({ accounts }: Props) {
                           <th className="px-3 py-2 text-left font-medium text-muted-foreground">Action</th>
                           <th className="px-3 py-2 text-right font-medium text-muted-foreground">Qty</th>
                           <th className="px-3 py-2 text-right font-medium text-muted-foreground">Avg Price</th>
-                          <th className="px-3 py-2 text-right font-medium text-muted-foreground">Net</th>
+                          <th className="px-3 py-2 text-right font-medium text-muted-foreground">Net / Fee</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y">
@@ -281,12 +281,18 @@ export function ImportQfxButton({ accounts }: Props) {
                                 </td>
                                 <td className="px-3 py-1.5 text-right tabular-nums">{tx.quantity}</td>
                                 <td className="px-3 py-1.5 text-right tabular-nums">${tx.unitPrice.toFixed(2)}</td>
-                                <td className={cn(
-                                  'px-3 py-1.5 text-right tabular-nums font-medium',
-                                  tx.netTotal >= 0 ? 'text-emerald-600' : 'text-rose-600',
-                                )}>
-                                  {tx.netTotal >= 0 ? '+' : ''}${Math.abs(tx.netTotal).toFixed(2)}
-                                </td>
+                                {tx.isAssignment ? (
+                                  <td className="px-3 py-1.5 text-right tabular-nums font-medium text-rose-600">
+                                    −${tx.commission.toFixed(2)} fee
+                                  </td>
+                                ) : (
+                                  <td className={cn(
+                                    'px-3 py-1.5 text-right tabular-nums font-medium',
+                                    tx.netTotal >= 0 ? 'text-emerald-600' : 'text-rose-600',
+                                  )}>
+                                    {tx.netTotal >= 0 ? '+' : ''}${Math.abs(tx.netTotal).toFixed(2)}
+                                  </td>
+                                )}
                               </tr>
                             )
                           }
