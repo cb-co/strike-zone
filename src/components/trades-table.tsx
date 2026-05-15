@@ -53,6 +53,10 @@ function fmt(n: number | null | undefined, decimals = 2) {
   return n.toLocaleString(undefined, { minimumFractionDigits: decimals, maximumFractionDigits: decimals })
 }
 
+function fmtDate(d: Date | string) {
+  return new Date(d).toLocaleDateString('en-US', { timeZone: 'UTC', month: 'short', day: 'numeric', year: 'numeric' })
+}
+
 function daysSince(d: Date) {
   return Math.floor((Date.now() - new Date(d).getTime()) / 86_400_000)
 }
@@ -85,13 +89,13 @@ export function TradesTable({ trades, variant, accounts, setups }: Props) {
         return daysBetween(t.openDate, t.closeDate)
       },
     },
-    { accessorKey: 'openDate', header: 'Open', cell: ({ getValue }) => new Date(getValue() as Date).toLocaleDateString() },
-    { accessorKey: 'closeDate', header: 'Close', cell: ({ getValue }) => getValue() ? new Date(getValue() as Date).toLocaleDateString() : '—' },
+    { accessorKey: 'openDate', header: 'Open', cell: ({ getValue }) => fmtDate(getValue() as Date) },
+    { accessorKey: 'closeDate', header: 'Close', cell: ({ getValue }) => getValue() ? fmtDate(getValue() as Date) : '—' },
     { accessorKey: 'ticker', header: 'Ticker', cell: ({ getValue }) => <span className="font-mono">{getValue() as string}</span> },
     { accessorKey: 'symbol', header: 'Symbol', size: 180, cell: ({ getValue }) => <span className="font-mono text-xs">{getValue() as string}</span> },
     { accessorKey: 'quantity', header: 'Qty', cell: ({ getValue }) => fmt(getValue() as number, 0) },
-    { accessorKey: 'entryPrice', header: 'Entry', cell: ({ getValue }) => `$${fmt(getValue() as number, 4)}` },
-    { accessorKey: 'exitPrice', header: 'Exit', cell: ({ getValue }) => getValue() ? `$${fmt(getValue() as number, 4)}` : '—' },
+    { accessorKey: 'entryPrice', header: 'Entry', cell: ({ getValue }) => `$${fmt(getValue() as number)}` },
+    { accessorKey: 'exitPrice', header: 'Exit', cell: ({ getValue }) => getValue() ? `$${fmt(getValue() as number)}` : '—' },
     {
       accessorKey: 'netPnl',
       header: 'Net P&L',
@@ -106,7 +110,7 @@ export function TradesTable({ trades, variant, accounts, setups }: Props) {
       header: 'Side',
       cell: ({ getValue }) => <Badge variant={getValue() === 'LONG' ? 'default' : 'secondary'}>{getValue() as string}</Badge>,
     },
-    { accessorKey: 'expiration', header: 'Expiry', cell: ({ getValue }) => getValue() ? new Date(getValue() as Date).toLocaleDateString() : '—' },
+    { accessorKey: 'expiration', header: 'Expiry', cell: ({ getValue }) => getValue() ? fmtDate(getValue() as Date) : '—' },
     {
       id: 'setups',
       header: 'Setups',
@@ -130,18 +134,18 @@ export function TradesTable({ trades, variant, accounts, setups }: Props) {
       header: 'Days Open',
       cell: ({ row }) => daysSince(row.original.openDate),
     },
-    { accessorKey: 'openDate', header: 'Open Date', cell: ({ getValue }) => new Date(getValue() as Date).toLocaleDateString() },
+    { accessorKey: 'openDate', header: 'Open Date', cell: ({ getValue }) => fmtDate(getValue() as Date) },
     { accessorKey: 'ticker', header: 'Ticker', cell: ({ getValue }) => <span className="font-mono">{getValue() as string}</span> },
     { accessorKey: 'symbol', header: 'Symbol', size: 180, cell: ({ getValue }) => <span className="font-mono text-xs">{getValue() as string}</span> },
     { accessorKey: 'quantity', header: 'Qty', cell: ({ getValue }) => fmt(getValue() as number, 0) },
-    { accessorKey: 'entryPrice', header: 'Entry', cell: ({ getValue }) => `$${fmt(getValue() as number, 4)}` },
+    { accessorKey: 'entryPrice', header: 'Entry', cell: ({ getValue }) => `$${fmt(getValue() as number)}` },
     { accessorKey: 'projectedProfit', header: 'Proj. Profit', cell: ({ getValue }) => getValue() ? `$${fmt(getValue() as number)}` : '—' },
     {
       accessorKey: 'side',
       header: 'Side',
       cell: ({ getValue }) => <Badge variant={getValue() === 'LONG' ? 'default' : 'secondary'}>{getValue() as string}</Badge>,
     },
-    { accessorKey: 'expiration', header: 'Expiry', cell: ({ getValue }) => getValue() ? new Date(getValue() as Date).toLocaleDateString() : '—' },
+    { accessorKey: 'expiration', header: 'Expiry', cell: ({ getValue }) => getValue() ? fmtDate(getValue() as Date) : '—' },
     {
       id: 'setups',
       header: 'Setups',

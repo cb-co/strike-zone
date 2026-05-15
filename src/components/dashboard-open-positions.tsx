@@ -95,7 +95,7 @@ export function DashboardOpenPositions({ positions, accounts, setups }: Props) {
                   dte !== null && dte <= 7 ? 'text-amber-600 font-medium' :
                   'text-muted-foreground',
                 )}>
-                  {t.expiration ? new Date(t.expiration).toLocaleDateString() : '—'}
+                  {t.expiration ? new Date(t.expiration).toLocaleDateString('en-US', { timeZone: 'UTC', month: 'short', day: 'numeric' }) : '—'}
                   {dte !== null && dte <= 7 && dte > 0 && <span className="ml-1 text-[10px]">({dte}d)</span>}
                   {dte !== null && dte <= 0 && <span className="ml-1 text-[10px]">(exp)</span>}
                 </td>

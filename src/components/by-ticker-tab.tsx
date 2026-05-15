@@ -70,7 +70,7 @@ export function ByTickerTab({ trades }: Props) {
             <div className="bg-muted/20 px-4 py-2 space-y-1">
               {s.trades.map((t) => (
                 <div key={t.id} className="flex items-center gap-4 text-sm py-1">
-                  <span className="text-muted-foreground w-24">{t.closeDate ? new Date(t.closeDate).toLocaleDateString() : '—'}</span>
+                  <span className="text-muted-foreground w-24">{t.closeDate ? new Date(t.closeDate).toLocaleDateString('en-US', { timeZone: 'UTC', month: 'short', day: 'numeric', year: 'numeric' }) : '—'}</span>
                   <span className={`font-medium ${(t.netPnl ?? 0) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                     {(t.netPnl ?? 0) >= 0 ? '+' : ''}${(t.netPnl ?? 0).toFixed(2)}
                   </span>

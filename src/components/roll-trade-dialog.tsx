@@ -108,7 +108,7 @@ export function RollTradeDialog({ open, onOpenChange, trade }: Props) {
             {trade.expiration && (
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Expires</span>
-                <span className="font-mono">{new Date(trade.expiration).toLocaleDateString()}</span>
+                <span className="font-mono">{new Date(trade.expiration).toLocaleDateString('en-US', { timeZone: 'UTC', month: 'short', day: 'numeric', year: 'numeric' })}</span>
               </div>
             )}
             <div className="flex justify-between border-t pt-1 mt-1">
