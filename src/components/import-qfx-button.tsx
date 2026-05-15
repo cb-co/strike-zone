@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { parseQfx, mergeSplitFills, mergeStockFills, type MergedTx, type MergedStockTx } from '@/lib/qfx'
-import { importQfxTrades, type ImportRecord, type ImportResult } from '@/actions/import-trades'
+import { importQfxTrades, revertImport, type ImportRecord, type ImportResult } from '@/actions/import-trades'
 import { cn } from '@/lib/utils'
 
 type Account = { id: string; name: string }
@@ -14,7 +14,7 @@ type Phase = 'idle' | 'preview' | 'importing' | 'done'
 
 function processFile(
   file: File,
-  onSuccess: (merged: MergedTx[], stockMerged: MergedStockTx[], errors: string[]) => void,
+  onSuccess: (merged: MergedTx[], stockMerged: MergedStockTx[], errors: string[], dateRange: { start: string; end: string }) => void,
   onError: (msg: string) => void
 ) {
   const ext = file.name.split('.').pop()?.toLowerCase()
@@ -34,7 +34,8 @@ function processFile(
       onSuccess(
         mergeSplitFills(parsed.transactions),
         mergeStockFills(parsed.stockTransactions),
-        parsed.errors
+        parsed.errors,
+        parsed.dateRange,
       )
     } catch (err) {
       onError(err instanceof Error ? err.message : 'Failed to parse file')
@@ -50,12 +51,39 @@ const ACTION_LABEL: Record<string, string> = {
   SELLTOCLOSE: 'Sell Close',
 }
 
+function UndoImportButton({ batchId, onUndone }: { batchId: string; onUndone: () => void }) {
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  async function handleUndo() {
+    setLoading(true)
+    setError(null)
+    try {
+      await revertImport(batchId)
+      onUndone()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Undo failed')
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div className="flex items-center gap-2">
+      <Button variant="outline" onClick={handleUndo} disabled={loading} className="text-destructive hover:text-destructive">
+        {loading ? 'Undoing…' : 'Undo Import'}
+      </Button>
+      {error && <p className="text-xs text-destructive">{error}</p>}
+    </div>
+  )
+}
+
 export function ImportQfxButton({ accounts }: Props) {
   const [open, setOpen]           = useState(false)
   const [phase, setPhase]         = useState<Phase>('idle')
   const [merged, setMerged]       = useState<MergedTx[]>([])
   const [stockMerged, setStockMerged] = useState<MergedStockTx[]>([])
   const [parseErrors, setParseErrors] = useState<string[]>([])
+  const [dateRange, setDateRange] = useState<{ start: string; end: string }>({ start: '', end: '' })
   const [accountId, setAccountId] = useState(accounts[0]?.id ?? '')
   const [result, setResult]       = useState<ImportResult | null>(null)
   const [error, setError]         = useState<string | null>(null)
@@ -67,6 +95,7 @@ export function ImportQfxButton({ accounts }: Props) {
     setMerged([])
     setStockMerged([])
     setParseErrors([])
+    setDateRange({ start: '', end: '' })
     setResult(null)
     setError(null)
     if (fileRef.current) fileRef.current.value = ''
@@ -77,10 +106,11 @@ export function ImportQfxButton({ accounts }: Props) {
     if (!v) reset()
   }
 
-  function handleSuccess(m: MergedTx[], sm: MergedStockTx[], errs: string[]) {
+  function handleSuccess(m: MergedTx[], sm: MergedStockTx[], errs: string[], dr: { start: string; end: string }) {
     setMerged(m)
     setStockMerged(sm)
     setParseErrors(errs)
+    setDateRange(dr)
     setPhase('preview')
     setError(null)
   }
@@ -132,7 +162,7 @@ export function ImportQfxButton({ accounts }: Props) {
         isAssignment:   tx.isAssignment,
       }))
       const records = [...optionRecords, ...stockRecords]
-      const res = await importQfxTrades(accountId, records)
+      const res = await importQfxTrades(accountId, records, dateRange.end)
       setResult(res)
       setPhase('done')
     } catch (err) {
@@ -378,7 +408,8 @@ export function ImportQfxButton({ accounts }: Props) {
                   </div>
                 )}
               </div>
-              <div className="flex justify-end">
+              <div className="flex justify-between items-center">
+                <UndoImportButton batchId={result.batchId} onUndone={() => handleOpenChange(false)} />
                 <Button onClick={() => handleOpenChange(false)}>Done</Button>
               </div>
             </div>

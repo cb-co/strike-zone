@@ -286,6 +286,14 @@ export function TradeForm({ open, onOpenChange, accounts, setups, trade }: Props
             </div>
           </div>
 
+          {/* Close Date — only shown when editing a closed trade */}
+          {isEditing && !isOpen && (
+            <div className="space-y-1">
+              <Label>Close Date</Label>
+              <DatePicker name="closeDate" defaultValue={toDateInput(trade?.closeDate)} />
+            </div>
+          )}
+
           {/* Option fields */}
           {showOptionFields && (
             <div className="rounded-md border p-3 space-y-3">

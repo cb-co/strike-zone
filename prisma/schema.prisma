@@ -92,6 +92,8 @@ model Trade {
   expiration      DateTime?   @db.Date
   contractSize    Int?        @map("contract_size")
   commission      Decimal     @default(0) @map("commission")      @db.Decimal(18,2)
+  importBatchId   String?     @map("import_batch_id")    @db.Uuid
+  closedByBatchId String?     @map("closed_by_batch_id") @db.Uuid
   createdAt       DateTime    @default(now()) @map("created_at")
   updatedAt       DateTime    @updatedAt      @map("updated_at")
   account         Account     @relation(fields: [accountId],    references: [id])

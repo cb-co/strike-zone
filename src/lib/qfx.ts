@@ -88,12 +88,13 @@ function parseOFXDate(d: string): string {
 }
 
 // Helper: extract underlying ticker from abbreviated OCC symbol
-// "SOXL260508P120" → "SOXL"
+// "SOXL260508P120" or "SOXL 260508P120" → "SOXL"
 function underlyingTicker(occSymbol: string): string {
-  // OCC symbol: up to 6 chars ticker, 6-digit date, C or P, strike
-  const match = occSymbol.match(/^([A-Z]+)\d{6}[CP]/)
+  // OCC symbol: up to 6 chars ticker, optional space, 6-digit date, C or P, strike
+  const normalized = occSymbol.replace(/\s+/g, '')
+  const match = normalized.match(/^([A-Z]+)\d{6}[CP]/)
   if (match) return match[1]
-  return occSymbol
+  return normalized
 }
 
 export function buildTickerMap(content: string): Map<string, string> {
@@ -156,7 +157,7 @@ function buildSecMap(content: string): Map<string, SecInfo> {
     const uniqueId = extractField(secInfo, 'UNIQUEID')
     if (!uniqueId) continue
 
-    const ticker = extractField(secInfo, 'TICKER')
+    const ticker = extractField(secInfo, 'TICKER').replace(/\s+/g, '')
     if (!ticker) continue
 
     const optType = extractField(block, 'OPTTYPE').toUpperCase()

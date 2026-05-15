@@ -123,7 +123,7 @@ export function TradesTable({ trades, variant, accounts, setups }: Props) {
       accessorKey: 'source',
       header: 'Source',
       cell: ({ getValue }) => getValue() === 'TS_IMPORT'
-        ? <Badge className="bg-amber-500 text-white text-xs">TS</Badge>
+        ? <Badge className="bg-blue-500 text-white text-xs">TS</Badge>
         : null,
     },
   ]

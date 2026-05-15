@@ -1,5 +1,6 @@
 'use server'
 
+import { randomUUID } from 'crypto'
 import { revalidatePath } from 'next/cache'
 import { prisma } from '@/lib/prisma'
 import { createClient } from '@/lib/supabase/server'
@@ -29,12 +30,21 @@ export type ImportResult = {
   expired: number
   skipped: string[]   // symbols with no open match
   errors: string[]
+  batchId: string     // use with revertImport() to undo this import
 }
 
 const MONTH_NAMES = [
   'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
   'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
 ]
+
+// Returns both the no-space and with-space variants of an OCC symbol so lookups
+// match regardless of how the symbol was stored (e.g. "SOXL260508P120" vs "SOXL 260508P120").
+function symbolVariants(symbol: string): string[] {
+  const noSpace = symbol.replace(/\s+/g, '')
+  const withSpace = noSpace.replace(/^([A-Z]+)(\d)/, '$1 $2')
+  return noSpace === withSpace ? [noSpace] : [noSpace, withSpace]
+}
 
 function tradeName(rec: ImportRecord): string {
   if (rec.instrumentType === 'STOCK') return rec.ticker
@@ -55,7 +65,8 @@ function revalidateTrades(): void {
 
 export async function importQfxTrades(
   accountId: string,
-  records: ImportRecord[]
+  records: ImportRecord[],
+  dateRangeEnd: string,
 ): Promise<ImportResult> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -66,6 +77,34 @@ export async function importQfxTrades(
     where: { id: accountId, userId },
   })
   if (!account) throw new Error('Account not found')
+
+  // Guard against double-import: if any TS_IMPORT open trade already exists for
+  // the same account/symbol/date as an open record in this file, reject the whole import.
+  const openRecords = records.filter((r) =>
+    r.action === 'SELLTOOPEN' || r.action === 'BUYTOOPEN' || (r.action === 'BUY' && !r.isAssignment)
+  )
+  if (openRecords.length > 0) {
+    const duplicateCheck = await prisma.trade.findFirst({
+      where: {
+        userId,
+        accountId,
+        source: 'TS_IMPORT',
+        OR: openRecords.map((r) => ({
+          symbol: { in: symbolVariants(r.symbol) },
+          openDate: new Date(r.date),
+        })),
+      },
+    })
+    if (duplicateCheck) {
+      throw new Error(
+        `This file appears to have already been imported — found an existing trade for ` +
+        `${duplicateCheck.symbol} opened on ${duplicateCheck.openDate.toISOString().slice(0, 10)}. ` +
+        `Import cancelled.`
+      )
+    }
+  }
+
+  const batchId = randomUUID()
 
   // Sort chronologically; within the same date closes run before opens so a
   // close with no matching open gets skipped before the new open is created.
@@ -83,6 +122,13 @@ export async function importQfxTrades(
   let expired = 0
   const skipped: string[] = []
   const errors: string[] = []
+  const deferred: ImportRecord[] = []
+
+  // Symbols with an open on each date — so same-day intra-day open+close can be retried
+  const sameDayOpens = new Set<string>()
+  for (const rec of sorted) {
+    if (!isClose(rec)) sameDayOpens.add(`${rec.date}|${rec.symbol.replace(/\s+/g, '')}`)
+  }
 
   for (const rec of sorted) {
     // Assignment: stock leg of an option exercise — close the option with the assignment fee,
@@ -97,7 +143,7 @@ export async function importQfxTrades(
           side: 'SHORT',
           optionType: assignedOptionType,
           closeDate: null,
-          expiration: { lte: new Date(rec.date) },
+          expiration: new Date(rec.date),
           strike: { gte: rec.unitPrice - 0.01, lte: rec.unitPrice + 0.01 },
         },
       })
@@ -115,7 +161,7 @@ export async function importQfxTrades(
         })
         await prisma.trade.update({
           where: { id: openOption.id },
-          data: { exitPrice: 0, closeDate: new Date(rec.date), netPnl },
+          data: { exitPrice: 0, closeDate: new Date(rec.date), netPnl, closedByBatchId: batchId },
         })
         closed++
       } else {
@@ -139,6 +185,7 @@ export async function importQfxTrades(
             source: 'TS_IMPORT',
             contractSize: 1,
             commission: 0,
+            importBatchId: batchId,
           },
         })
         created++
@@ -168,12 +215,12 @@ export async function importQfxTrades(
           if (closeQty >= stockQty) {
             await prisma.trade.update({
               where: { id: openStock.id },
-              data: { exitPrice: rec.unitPrice, closeDate: new Date(rec.date), netPnl },
+              data: { exitPrice: rec.unitPrice, closeDate: new Date(rec.date), netPnl, closedByBatchId: batchId },
             })
           } else {
             await prisma.trade.update({
               where: { id: openStock.id },
-              data: { quantity: stockQty - closeQty },
+              data: { quantity: stockQty - closeQty, closedByBatchId: batchId },
             })
             await prisma.trade.create({
               data: {
@@ -191,12 +238,34 @@ export async function importQfxTrades(
                 exitPrice: rec.unitPrice,
                 closeDate: new Date(rec.date),
                 netPnl,
+                importBatchId: batchId,
               },
             })
           }
           closed++
         } else {
-          skipped.push(`${rec.ticker} assignment (no open LONG stock to deliver)`)
+          // No tracked stock to deliver — the shares may have been in a prior period not yet imported.
+          // Record a closed delivery at the assignment price so the event is auditable.
+          await prisma.trade.create({
+            data: {
+              userId, accountId,
+              name: rec.ticker,
+              ticker: rec.ticker,
+              symbol: rec.ticker,
+              side: 'LONG',
+              quantity: rec.quantity,
+              entryPrice: rec.unitPrice,
+              openDate: new Date(rec.date),
+              source: 'TS_IMPORT',
+              contractSize: 1,
+              commission: 0,
+              exitPrice: rec.unitPrice,
+              closeDate: new Date(rec.date),
+              netPnl: 0,
+              importBatchId: batchId,
+            },
+          })
+          closed++
         }
       }
       continue
@@ -211,11 +280,12 @@ export async function importQfxTrades(
       else side = 'LONG' // BUYTOOPEN or BUY (stock)
 
       const existing = await prisma.trade.findFirst({
-        where: { userId, accountId, symbol: rec.symbol, closeDate: null, side },
+        where: { userId, accountId, symbol: { in: symbolVariants(rec.symbol) }, closeDate: null, side },
       })
 
       if (existing) {
-        // Add to position: weighted-average the entry price, accumulate quantity
+        // Add to position: weighted-average the entry price, accumulate quantity.
+        // NOTE: this update is not tagged — add-to-position cannot be auto-reverted.
         const existingQty = Number(existing.quantity)
         const newQty = existingQty + rec.quantity
         const newEntry = Math.round(
@@ -227,7 +297,12 @@ export async function importQfxTrades(
 
         await prisma.trade.update({
           where: { id: existing.id },
-          data: { quantity: newQty, entryPrice: newEntry, projectedProfit: newProjectedProfit },
+          data: {
+            quantity: newQty,
+            entryPrice: newEntry,
+            projectedProfit: newProjectedProfit,
+            commission: Number(existing.commission) + rec.commission,
+          },
         })
       } else {
         if (rec.instrumentType === 'STOCK') {
@@ -245,6 +320,7 @@ export async function importQfxTrades(
               source: 'TS_IMPORT',
               contractSize: 1,
               commission: rec.commission,
+              importBatchId: batchId,
             },
           })
         } else {
@@ -270,6 +346,7 @@ export async function importQfxTrades(
               contractSize: rec.contractSize,
               projectedProfit,
               commission: rec.commission,
+              importBatchId: batchId,
             },
           })
         }
@@ -285,15 +362,28 @@ export async function importQfxTrades(
 
     // Close — quantity-aware, supports partial closes
     const openTrade = await prisma.trade.findFirst({
-      where: { userId, accountId, symbol: rec.symbol, closeDate: null, side: closingSide },
+      where: { userId, accountId, symbol: { in: symbolVariants(rec.symbol) }, closeDate: null, side: closingSide },
     })
 
     if (!openTrade) {
-      skipped.push(rec.symbol)
+      // If an open for this symbol exists later that same day, defer until after it's processed
+      if (sameDayOpens.has(`${rec.date}|${rec.symbol.replace(/\s+/g, '')}`)) {
+        deferred.push(rec)
+      } else {
+        skipped.push(rec.symbol)
+      }
       continue
     }
 
     const tradeQty = Number(openTrade.quantity)
+
+    // If the close wants more contracts than currently exist AND a same-day STO will add more,
+    // defer so the open runs first (e.g. STO → BTC roll where STO augments before the BTC)
+    if (rec.quantity > tradeQty && sameDayOpens.has(`${rec.date}|${rec.symbol.replace(/\s+/g, '')}`)) {
+      deferred.push(rec)
+      continue
+    }
+
     const closeQty = Math.min(rec.quantity, tradeQty)
 
     // Pro-rate open commission if this is a partial close
@@ -312,7 +402,7 @@ export async function importQfxTrades(
     if (closeQty >= tradeQty) {
       await prisma.trade.update({
         where: { id: openTrade.id },
-        data: { exitPrice: rec.unitPrice, closeDate: new Date(rec.date), netPnl },
+        data: { exitPrice: rec.unitPrice, closeDate: new Date(rec.date), netPnl, closedByBatchId: batchId },
       })
     } else {
       // Partial close: shrink the open, create a closed record for the closed portion
@@ -326,6 +416,7 @@ export async function importQfxTrades(
           projectedProfit: openTrade.projectedProfit != null
             ? Number(openTrade.projectedProfit) * (remainingQty / tradeQty)
             : null,
+          closedByBatchId: batchId,
         },
       })
       await prisma.trade.create({
@@ -351,6 +442,7 @@ export async function importQfxTrades(
           exitPrice: rec.unitPrice,
           closeDate: new Date(rec.date),
           netPnl,
+          importBatchId: batchId,
         },
       })
     }
@@ -358,15 +450,94 @@ export async function importQfxTrades(
     closed++
   }
 
-  // Auto-close options that expired worthless (SHORT = expires at 0 profit, LONG = full loss)
-  const today = new Date()
-  today.setUTCHours(0, 0, 0, 0)
+  // Second pass: retry closes deferred because the matching open hadn't been processed yet
+  // (intra-day open-then-close where the close appeared first in the sorted order)
+  for (const rec of deferred) {
+    let closingSide: TradeSide
+    if (rec.action === 'BUYTOCLOSE') closingSide = 'SHORT'
+    else closingSide = 'LONG'
+
+    const openTrade = await prisma.trade.findFirst({
+      where: { userId, accountId, symbol: { in: symbolVariants(rec.symbol) }, closeDate: null, side: closingSide },
+    })
+
+    if (!openTrade) {
+      skipped.push(rec.symbol)
+      continue
+    }
+
+    const tradeQty = Number(openTrade.quantity)
+    const closeQty = Math.min(rec.quantity, tradeQty)
+    const openCommission = Number(openTrade.commission) * (closeQty / tradeQty)
+    const totalCommission = openCommission + rec.commission
+
+    const netPnl = calcNetPnl({
+      side: openTrade.side as 'LONG' | 'SHORT',
+      entryPrice: Number(openTrade.entryPrice),
+      exitPrice: rec.unitPrice,
+      quantity: closeQty,
+      contractSize: openTrade.contractSize,
+      commission: totalCommission,
+    })
+
+    if (closeQty >= tradeQty) {
+      await prisma.trade.update({
+        where: { id: openTrade.id },
+        data: { exitPrice: rec.unitPrice, closeDate: new Date(rec.date), netPnl, closedByBatchId: batchId },
+      })
+    } else {
+      const remainingQty = tradeQty - closeQty
+      const remainingCommission = Number(openTrade.commission) * (remainingQty / tradeQty)
+      await prisma.trade.update({
+        where: { id: openTrade.id },
+        data: {
+          quantity: remainingQty,
+          commission: remainingCommission,
+          projectedProfit: openTrade.projectedProfit != null
+            ? Number(openTrade.projectedProfit) * (remainingQty / tradeQty)
+            : null,
+          closedByBatchId: batchId,
+        },
+      })
+      await prisma.trade.create({
+        data: {
+          userId, accountId,
+          name: openTrade.name,
+          ticker: openTrade.ticker,
+          symbol: openTrade.symbol,
+          side: openTrade.side,
+          quantity: closeQty,
+          entryPrice: openTrade.entryPrice,
+          openDate: openTrade.openDate,
+          source: openTrade.source,
+          optionType: openTrade.optionType,
+          strike: openTrade.strike,
+          expiration: openTrade.expiration,
+          contractSize: openTrade.contractSize,
+          commission: openCommission,
+          projectedProfit: openTrade.projectedProfit != null
+            ? Number(openTrade.projectedProfit) * (closeQty / tradeQty)
+            : null,
+          exitPrice: rec.unitPrice,
+          closeDate: new Date(rec.date),
+          netPnl,
+          importBatchId: batchId,
+        },
+      })
+    }
+    closed++
+  }
+
+  // Auto-close options that expired within this file's date range and have no explicit close.
+  // Using dateRangeEnd (file DTEND) instead of today prevents incorrectly closing positions
+  // from future import periods when importing historical files.
+  const rangeEnd = new Date(dateRangeEnd)
   const expiredTrades = await prisma.trade.findMany({
     where: {
       userId,
       accountId,
       closeDate: null,
-      expiration: { lt: today },
+      expiration: { lte: rangeEnd },
       optionType: { not: null },
     },
   })
@@ -384,6 +555,7 @@ export async function importQfxTrades(
         exitPrice: 0,
         closeDate: trade.expiration,
         netPnl,
+        closedByBatchId: batchId,
       },
     })
     expired++
@@ -391,5 +563,63 @@ export async function importQfxTrades(
 
   revalidateTrades()
 
-  return { created, closed, expired, skipped, errors }
+  return { created, closed, expired, skipped, errors, batchId }
+}
+
+export async function revertImport(batchId: string): Promise<void> {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error('Not authenticated')
+  const userId = user.id
+
+  // Verify this batch belongs to this user before touching anything
+  const owned = await prisma.trade.findFirst({ where: { userId, importBatchId: batchId } })
+    ?? await prisma.trade.findFirst({ where: { userId, closedByBatchId: batchId } })
+  if (!owned) throw new Error('Import batch not found')
+
+  // Partial-close splits: created closed records where the corresponding open was shrunk.
+  // Restore the remaining open's quantity before deleting the split record.
+  const splits = await prisma.trade.findMany({
+    where: { userId, importBatchId: batchId, closeDate: { not: null } },
+    include: { account: true },
+  })
+  for (const split of splits) {
+    const remaining = await prisma.trade.findFirst({
+      where: {
+        userId,
+        accountId: split.accountId,
+        symbol: split.symbol,
+        side: split.side,
+        closeDate: null,
+        closedByBatchId: batchId,
+      },
+    })
+    if (remaining) {
+      // Recover the open-side commission that was pro-rated into the split record
+      const closeRate = Number(split.account.commissionPerOption)
+      const openCommissionInSplit = Number(split.commission) - Number(split.quantity) * closeRate
+      await prisma.trade.update({
+        where: { id: remaining.id },
+        data: {
+          quantity: Number(remaining.quantity) + Number(split.quantity),
+          commission: Number(remaining.commission) + Math.max(0, openCommissionInSplit),
+          projectedProfit: remaining.projectedProfit != null
+            ? Number(remaining.projectedProfit) + (split.projectedProfit != null ? Number(split.projectedProfit) : 0)
+            : null,
+          closedByBatchId: null,
+        },
+      })
+    }
+  }
+
+  // Revert existing trades that were fully closed or auto-expired by this import
+  await prisma.trade.updateMany({
+    where: { userId, closedByBatchId: batchId },
+    data: { exitPrice: null, closeDate: null, netPnl: null, closedByBatchId: null },
+  })
+
+  // Delete all trades created by this import
+  await prisma.trade.deleteMany({ where: { userId, importBatchId: batchId } })
+
+  revalidateTrades()
 }

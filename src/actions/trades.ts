@@ -105,17 +105,19 @@ export async function updateTrade(id: string, formData: FormData) {
   let closeDate = existing?.closeDate ?? null
   let netPnl = existing?.netPnl ?? null
 
-  if (data.exitPrice && data.closeDate) {
-    const computed = calcNetPnl({
-      side: data.side,
-      entryPrice: data.entryPrice,
-      exitPrice: data.exitPrice,
-      quantity: data.quantity,
-      contractSize: data.contractSize,
-    })
-    exitPrice = data.exitPrice as unknown as typeof exitPrice
+  if (data.closeDate) {
     closeDate = new Date(data.closeDate) as unknown as typeof closeDate
-    netPnl = computed as unknown as typeof netPnl
+    if (data.exitPrice) {
+      const computed = calcNetPnl({
+        side: data.side,
+        entryPrice: data.entryPrice,
+        exitPrice: data.exitPrice,
+        quantity: data.quantity,
+        contractSize: data.contractSize,
+      })
+      exitPrice = data.exitPrice as unknown as typeof exitPrice
+      netPnl = computed as unknown as typeof netPnl
+    }
   }
 
   await prisma.trade.update({
@@ -148,6 +150,15 @@ export async function updateTrade(id: string, formData: FormData) {
 export async function deleteTrade(id: string) {
   const userId = await getUserId()
   await prisma.trade.delete({ where: { id, userId } })
+  revalidateTrades()
+}
+
+export async function updateCloseDate(id: string, closeDate: string) {
+  const userId = await getUserId()
+  await prisma.trade.update({
+    where: { id, userId },
+    data: { closeDate: new Date(closeDate) },
+  })
   revalidateTrades()
 }
 
