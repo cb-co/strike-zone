@@ -24,7 +24,7 @@ export type ImportResult = {
   created: number
   closed: number
   expired: number
-  skipped: number
+  skipped: string[]   // symbols with no open match
   errors: string[]
 }
 
@@ -69,7 +69,7 @@ export async function importQfxTrades(
   let created = 0
   let closed = 0
   let expired = 0
-  let skipped = 0
+  const skipped: string[] = []
   const errors: string[] = []
 
   // Process opens — merge into existing open position for same symbol
@@ -130,7 +130,7 @@ export async function importQfxTrades(
     })
 
     if (!openTrade) {
-      skipped++
+      skipped.push(rec.symbol)
       continue
     }
 
@@ -225,5 +225,5 @@ export async function importQfxTrades(
 
   revalidateTrades()
 
-  return { created, closed, expired, skipped, errors: [] }
+  return { created, closed, expired, skipped, errors }
 }

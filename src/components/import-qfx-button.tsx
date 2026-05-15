@@ -271,10 +271,17 @@ export function ImportQfxButton({ accounts }: Props) {
                     <span className="font-semibold text-muted-foreground">{result.expired}</span>
                   </div>
                 )}
-                {result.skipped > 0 && (
-                  <div className="flex justify-between px-4 py-2.5">
-                    <span className="text-muted-foreground">Skipped (duplicates / no open match)</span>
-                    <span className="font-semibold text-amber-600">{result.skipped}</span>
+                {result.skipped.length > 0 && (
+                  <div className="px-4 py-2.5 space-y-1">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">No open match</span>
+                      <span className="font-semibold text-amber-600">{result.skipped.length}</span>
+                    </div>
+                    <div className="flex flex-wrap gap-1 pt-0.5">
+                      {result.skipped.map((sym) => (
+                        <span key={sym} className="font-mono text-[10px] bg-amber-50 text-amber-700 ring-1 ring-amber-200 rounded px-1.5 py-0.5">{sym}</span>
+                      ))}
+                    </div>
                   </div>
                 )}
               </div>
