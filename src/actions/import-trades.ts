@@ -23,6 +23,7 @@ export type ImportRecord = {
 export type ImportResult = {
   created: number
   closed: number
+  expired: number
   skipped: number
   errors: string[]
 }
@@ -67,6 +68,7 @@ export async function importQfxTrades(
 
   let created = 0
   let closed = 0
+  let expired = 0
   let skipped = 0
   const errors: string[] = []
 
@@ -150,7 +152,38 @@ export async function importQfxTrades(
     closed++
   }
 
+  // Auto-close options that expired worthless (SHORT = expires at 0 profit, LONG = full loss)
+  const today = new Date()
+  today.setUTCHours(0, 0, 0, 0)
+  const expiredTrades = await prisma.trade.findMany({
+    where: {
+      userId,
+      accountId,
+      closeDate: null,
+      expiration: { lt: today },
+      optionType: { not: null },
+    },
+  })
+  for (const trade of expiredTrades) {
+    const netPnl = calcNetPnl({
+      side: trade.side as 'LONG' | 'SHORT',
+      entryPrice: Number(trade.entryPrice),
+      exitPrice: 0,
+      quantity: Number(trade.quantity),
+      contractSize: trade.contractSize,
+    })
+    await prisma.trade.update({
+      where: { id: trade.id },
+      data: {
+        exitPrice: 0,
+        closeDate: trade.expiration,
+        netPnl,
+      },
+    })
+    expired++
+  }
+
   revalidateTrades()
 
-  return { created, closed, skipped, errors: [] }
+  return { created, closed, expired, skipped, errors: [] }
 }

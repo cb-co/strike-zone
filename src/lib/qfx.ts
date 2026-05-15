@@ -227,7 +227,7 @@ export function mergeSplitFills(transactions: QfxOptionTx[]): MergedTx[] {
     }
 
     const totalContracts = group.reduce((sum, tx) => sum + tx.contracts, 0)
-    const weightedPrice = group.reduce((sum, tx) => sum + tx.unitPrice * tx.contracts, 0) / totalContracts
+    const weightedPrice = Math.round(group.reduce((sum, tx) => sum + tx.unitPrice * tx.contracts, 0) / totalContracts * 100) / 100
     const totalCommission = group.reduce((sum, tx) => sum + tx.commission, 0)
     const totalNetTotal = group.reduce((sum, tx) => sum + tx.netTotal, 0)
     const fitIds = group.map(tx => tx.fitId)

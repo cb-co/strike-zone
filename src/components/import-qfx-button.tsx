@@ -12,6 +12,29 @@ type Account = { id: string; name: string }
 type Props = { accounts: Account[] }
 type Phase = 'idle' | 'preview' | 'importing' | 'done'
 
+function processFile(file: File, onSuccess: (merged: MergedTx[], errors: string[]) => void, onError: (msg: string) => void) {
+  const ext = file.name.split('.').pop()?.toLowerCase()
+  if (ext !== 'qfx' && ext !== 'ofx') {
+    onError('Please upload a .qfx or .ofx file from TradeStation')
+    return
+  }
+  const reader = new FileReader()
+  reader.onload = (ev) => {
+    const content = ev.target?.result as string
+    try {
+      const parsed = parseQfx(content)
+      if (parsed.transactions.length === 0) {
+        onError('No option transactions found in this file')
+        return
+      }
+      onSuccess(mergeSplitFills(parsed.transactions), parsed.errors)
+    } catch (err) {
+      onError(err instanceof Error ? err.message : 'Failed to parse file')
+    }
+  }
+  reader.readAsText(file)
+}
+
 const ACTION_LABEL: Record<string, string> = {
   SELLTOOPEN:  'Short Open',
   BUYTOOPEN:   'Long Open',
@@ -27,6 +50,7 @@ export function ImportQfxButton({ accounts }: Props) {
   const [accountId, setAccountId] = useState(accounts[0]?.id ?? '')
   const [result, setResult]       = useState<ImportResult | null>(null)
   const [error, setError]         = useState<string | null>(null)
+  const [isDragOver, setIsDragOver] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
 
   function reset() {
@@ -43,32 +67,25 @@ export function ImportQfxButton({ accounts }: Props) {
     if (!v) reset()
   }
 
+  function handleSuccess(m: MergedTx[], errs: string[]) {
+    setMerged(m)
+    setParseErrors(errs)
+    setPhase('preview')
+    setError(null)
+  }
+
   function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
-    const ext = file.name.split('.').pop()?.toLowerCase()
-    if (ext !== 'qfx' && ext !== 'ofx') {
-      setError('Please upload a .qfx or .ofx file from TradeStation')
-      return
-    }
-    const reader = new FileReader()
-    reader.onload = (ev) => {
-      const content = ev.target?.result as string
-      try {
-        const parsed = parseQfx(content)
-        if (parsed.transactions.length === 0) {
-          setError('No option transactions found in this file')
-          return
-        }
-        setMerged(mergeSplitFills(parsed.transactions))
-        setParseErrors(parsed.errors)
-        setPhase('preview')
-        setError(null)
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to parse file')
-      }
-    }
-    reader.readAsText(file)
+    processFile(file, handleSuccess, setError)
+  }
+
+  function handleDrop(e: React.DragEvent) {
+    e.preventDefault()
+    setIsDragOver(false)
+    const file = e.dataTransfer.files?.[0]
+    if (!file) return
+    processFile(file, handleSuccess, setError)
   }
 
   async function handleImport() {
@@ -114,10 +131,16 @@ export function ImportQfxButton({ accounts }: Props) {
           {phase === 'idle' && (
             <div className="space-y-4">
               <div
-                className="border-2 border-dashed rounded-lg p-10 text-center cursor-pointer hover:bg-muted/30 transition-colors"
+                className={cn(
+                  'border-2 border-dashed rounded-lg p-10 text-center cursor-pointer transition-colors',
+                  isDragOver ? 'border-primary bg-primary/5' : 'hover:bg-muted/30',
+                )}
                 onClick={() => fileRef.current?.click()}
+                onDragOver={(e) => { e.preventDefault(); setIsDragOver(true) }}
+                onDragLeave={() => setIsDragOver(false)}
+                onDrop={handleDrop}
               >
-                <p className="text-sm font-medium">Click to select file</p>
+                <p className="text-sm font-medium">{isDragOver ? 'Drop to import' : 'Click or drag file here'}</p>
                 <p className="text-xs text-muted-foreground mt-1">
                   Accepts <span className="font-mono">.qfx</span> or <span className="font-mono">.ofx</span> exported from TradeStation
                 </p>
@@ -242,6 +265,12 @@ export function ImportQfxButton({ accounts }: Props) {
                   <span className="text-muted-foreground">Trades closed</span>
                   <span className="font-semibold">{result.closed}</span>
                 </div>
+                {result.expired > 0 && (
+                  <div className="flex justify-between px-4 py-2.5">
+                    <span className="text-muted-foreground">Expired worthless (auto-closed at $0)</span>
+                    <span className="font-semibold text-muted-foreground">{result.expired}</span>
+                  </div>
+                )}
                 {result.skipped > 0 && (
                   <div className="flex justify-between px-4 py-2.5">
                     <span className="text-muted-foreground">Skipped (duplicates / no open match)</span>
