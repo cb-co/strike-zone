@@ -63,8 +63,15 @@ export async function importQfxTrades(
   })
   if (!account) throw new Error('Account not found')
 
-  const opens = records.filter(r => r.action === 'SELLTOOPEN' || r.action === 'BUYTOOPEN')
-  const closes = records.filter(r => r.action === 'BUYTOCLOSE' || r.action === 'SELLTOCLOSE')
+  // Sort chronologically; within the same date closes run before opens so a
+  // close with no matching open gets skipped before the new open is created.
+  const isClose = (r: ImportRecord) => r.action === 'BUYTOCLOSE' || r.action === 'SELLTOCLOSE'
+  const sorted = [...records].sort((a, b) => {
+    if (a.date < b.date) return -1
+    if (a.date > b.date) return 1
+    // same date: closes first
+    return (isClose(a) ? 0 : 1) - (isClose(b) ? 0 : 1)
+  })
 
   let created = 0
   let closed = 0
@@ -72,59 +79,59 @@ export async function importQfxTrades(
   const skipped: string[] = []
   const errors: string[] = []
 
-  // Process opens — merge into existing open position for same symbol
-  for (const rec of opens) {
-    const side: TradeSide = rec.action === 'SELLTOOPEN' ? 'SHORT' : 'LONG'
+  for (const rec of sorted) {
+    if (rec.action === 'SELLTOOPEN' || rec.action === 'BUYTOOPEN') {
+      const side: TradeSide = rec.action === 'SELLTOOPEN' ? 'SHORT' : 'LONG'
 
-    const existing = await prisma.trade.findFirst({
-      where: { userId, accountId, symbol: rec.symbol, closeDate: null },
-    })
-
-    if (existing) {
-      // Add to position: weighted-average the entry price, accumulate contracts
-      const existingQty = Number(existing.quantity)
-      const newQty = existingQty + rec.contracts
-      const newEntry = Math.round(
-        ((Number(existing.entryPrice) * existingQty) + (rec.unitPrice * rec.contracts)) / newQty * 100
-      ) / 100
-      const newProjectedProfit = existing.side === 'SHORT'
-        ? newEntry * newQty * (existing.contractSize ?? 100)
-        : null
-
-      await prisma.trade.update({
-        where: { id: existing.id },
-        data: { quantity: newQty, entryPrice: newEntry, projectedProfit: newProjectedProfit },
+      const existing = await prisma.trade.findFirst({
+        where: { userId, accountId, symbol: rec.symbol, closeDate: null },
       })
-    } else {
-      const projectedProfit = side === 'SHORT'
-        ? rec.unitPrice * rec.contracts * rec.contractSize
-        : null
 
-      await prisma.trade.create({
-        data: {
-          userId,
-          accountId,
-          name: tradeName(rec),
-          ticker: rec.ticker,
-          symbol: rec.symbol,
-          side,
-          quantity: rec.contracts,
-          entryPrice: rec.unitPrice,
-          openDate: new Date(rec.date),
-          source: 'TS_IMPORT',
-          optionType: rec.optionType as OptionType,
-          strike: rec.strike,
-          expiration: new Date(rec.expiration),
-          contractSize: rec.contractSize,
-          projectedProfit,
-        },
-      })
-      created++
+      if (existing) {
+        // Add to position: weighted-average the entry price, accumulate contracts
+        const existingQty = Number(existing.quantity)
+        const newQty = existingQty + rec.contracts
+        const newEntry = Math.round(
+          ((Number(existing.entryPrice) * existingQty) + (rec.unitPrice * rec.contracts)) / newQty * 100
+        ) / 100
+        const newProjectedProfit = existing.side === 'SHORT'
+          ? newEntry * newQty * (existing.contractSize ?? 100)
+          : null
+
+        await prisma.trade.update({
+          where: { id: existing.id },
+          data: { quantity: newQty, entryPrice: newEntry, projectedProfit: newProjectedProfit },
+        })
+      } else {
+        const projectedProfit = side === 'SHORT'
+          ? rec.unitPrice * rec.contracts * rec.contractSize
+          : null
+
+        await prisma.trade.create({
+          data: {
+            userId,
+            accountId,
+            name: tradeName(rec),
+            ticker: rec.ticker,
+            symbol: rec.symbol,
+            side,
+            quantity: rec.contracts,
+            entryPrice: rec.unitPrice,
+            openDate: new Date(rec.date),
+            source: 'TS_IMPORT',
+            optionType: rec.optionType as OptionType,
+            strike: rec.strike,
+            expiration: new Date(rec.expiration),
+            contractSize: rec.contractSize,
+            projectedProfit,
+          },
+        })
+        created++
+      }
+      continue
     }
-  }
 
-  // Process closes — quantity-aware, supports partial closes
-  for (const rec of closes) {
+    // Close — quantity-aware, supports partial closes
     const openTrade = await prisma.trade.findFirst({
       where: { userId, accountId, symbol: rec.symbol, closeDate: null },
     })
@@ -146,7 +153,6 @@ export async function importQfxTrades(
     })
 
     if (closeQty >= tradeQty) {
-      // Full close
       await prisma.trade.update({
         where: { id: openTrade.id },
         data: { exitPrice: rec.unitPrice, closeDate: new Date(rec.date), netPnl },
