@@ -29,7 +29,8 @@ export default async function TradesPage(props: Props) {
       include: { tradeSetups: { include: { setup: true } } },
       orderBy: { openDate: 'desc' },
     }),
-    prisma.account.findMany({ where: { userId: user.id }, select: { id: true, name: true } }),
+    prisma.account.findMany({ where: { userId: user.id }, select: { id: true, name: true, optionAssignmentFee: true } })
+      .then(accs => accs.map(a => ({ ...a, optionAssignmentFee: Number(a.optionAssignmentFee) }))),
     prisma.setup.findMany({ where: { userId: user.id }, select: { id: true, name: true } }),
   ])
 

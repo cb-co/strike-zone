@@ -120,15 +120,16 @@ export function ImportQfxButton({ accounts }: Props) {
       }))
       const stockRecords: ImportRecord[] = stockMerged.map((tx) => ({
         instrumentType: 'STOCK',
-        symbol:       tx.ticker,
-        ticker:       tx.ticker,
-        quantity:     tx.quantity,
-        unitPrice:    tx.unitPrice,
-        commission:   tx.commission,
-        date:         tx.tradeDate,
-        action:       tx.action,
-        netTotal:     tx.netTotal,
-        contractSize: 1,
+        symbol:         tx.ticker,
+        ticker:         tx.ticker,
+        quantity:       tx.quantity,
+        unitPrice:      tx.unitPrice,
+        commission:     tx.commission,
+        date:           tx.tradeDate,
+        action:         tx.action,
+        netTotal:       tx.netTotal,
+        contractSize:   1,
+        isAssignment:   tx.isAssignment,
       }))
       const records = [...optionRecords, ...stockRecords]
       const res = await importQfxTrades(accountId, records)
@@ -140,8 +141,10 @@ export function ImportQfxButton({ accounts }: Props) {
     }
   }
 
-  const opens  = merged.filter((t) => t.action === 'SELLTOOPEN'  || t.action === 'BUYTOOPEN')
-  const closes = merged.filter((t) => t.action === 'BUYTOCLOSE'  || t.action === 'SELLTOCLOSE')
+  const opens       = merged.filter((t) => t.action === 'SELLTOOPEN'  || t.action === 'BUYTOOPEN')
+  const closes      = merged.filter((t) => t.action === 'BUYTOCLOSE'  || t.action === 'SELLTOCLOSE')
+  const assignments = stockMerged.filter((t) => t.isAssignment)
+  const regularStocks = stockMerged.filter((t) => !t.isAssignment)
 
   return (
     <>
@@ -193,9 +196,14 @@ export function ImportQfxButton({ accounts }: Props) {
                 <span className="rounded-full bg-rose-50 text-rose-700 ring-1 ring-rose-200 px-2.5 py-0.5 font-medium">
                   {closes.length} closes
                 </span>
-                {stockMerged.length > 0 && (
+                {regularStocks.length > 0 && (
                   <span className="rounded-full bg-blue-50 text-blue-700 ring-1 ring-blue-200 px-2.5 py-0.5 font-medium">
-                    {stockMerged.length} stocks
+                    {regularStocks.length} stocks
+                  </span>
+                )}
+                {assignments.length > 0 && (
+                  <span className="rounded-full bg-violet-50 text-violet-700 ring-1 ring-violet-200 px-2.5 py-0.5 font-medium">
+                    {assignments.length} assigned
                   </span>
                 )}
                 {parseErrors.length > 0 && (
@@ -258,12 +266,18 @@ export function ImportQfxButton({ accounts }: Props) {
                                 </td>
                                 <td className="px-3 py-1.5 font-mono">{tx.ticker}</td>
                                 <td className="px-3 py-1.5">
-                                  <span className={cn(
-                                    'inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide ring-1',
-                                    isBuy ? 'bg-blue-50 text-blue-700 ring-blue-200' : 'bg-muted/80 text-muted-foreground ring-border',
-                                  )}>
-                                    {isBuy ? 'Buy' : 'Sell'}
-                                  </span>
+                                  {tx.isAssignment ? (
+                                    <span className="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide ring-1 bg-violet-50 text-violet-700 ring-violet-200">
+                                      Assigned
+                                    </span>
+                                  ) : (
+                                    <span className={cn(
+                                      'inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide ring-1',
+                                      isBuy ? 'bg-blue-50 text-blue-700 ring-blue-200' : 'bg-muted/80 text-muted-foreground ring-border',
+                                    )}>
+                                      {isBuy ? 'Buy' : 'Sell'}
+                                    </span>
+                                  )}
                                 </td>
                                 <td className="px-3 py-1.5 text-right tabular-nums">{tx.quantity}</td>
                                 <td className="px-3 py-1.5 text-right tabular-nums">${tx.unitPrice.toFixed(2)}</td>
@@ -317,7 +331,7 @@ export function ImportQfxButton({ accounts }: Props) {
               <div className="flex justify-end gap-2">
                 <Button variant="outline" onClick={() => handleOpenChange(false)}>Cancel</Button>
                 <Button onClick={handleImport} disabled={(merged.length === 0 && stockMerged.length === 0) || !accountId}>
-                  Import {merged.length + stockMerged.length} records
+                  Import {merged.length + regularStocks.length + assignments.length} records
                 </Button>
               </div>
             </div>

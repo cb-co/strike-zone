@@ -151,7 +151,7 @@ export async function deleteTrade(id: string) {
   revalidateTrades()
 }
 
-export async function closeTrade(id: string, exitPrice: number, closeDate: string) {
+export async function closeTrade(id: string, exitPrice: number, closeDate: string, isAssignment = false) {
   const userId = await getUserId()
   const trade = await prisma.trade.findUnique({
     where: { id, userId },
@@ -163,7 +163,8 @@ export async function closeTrade(id: string, exitPrice: number, closeDate: strin
     ? Number(trade.account.commissionPerOption)
     : Number(trade.account.commissionPerStock)
   const closeCommission = Number(trade.quantity) * closeRate
-  const totalCommission = Number(trade.commission) + closeCommission
+  const assignmentFee = isAssignment ? Number(trade.account.optionAssignmentFee) : 0
+  const totalCommission = Number(trade.commission) + closeCommission + assignmentFee
 
   const netPnl = calcNetPnl({
     side: trade.side,

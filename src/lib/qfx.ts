@@ -27,6 +27,7 @@ export type QfxStockTx = {
   commission: number
   netTotal: number
   action: 'BUY' | 'SELL'
+  isAssignment: boolean // commission ≥ $5 signals option assignment fee
 }
 
 export type MergedStockTx = Omit<QfxStockTx, 'fitId'> & { fitIds: string[] }
@@ -143,6 +144,7 @@ function parseStockBlock(
     commission,
     netTotal: total,
     action: isBuy ? 'BUY' : 'SELL',
+    isAssignment: commission >= 5,
   }
 }
 
@@ -296,7 +298,7 @@ export function mergeStockFills(transactions: QfxStockTx[]): MergedStockTx[] {
   const groups = new Map<string, QfxStockTx[]>()
 
   for (const tx of transactions) {
-    const key = `${tx.ticker}|${tx.tradeDate}|${tx.action}`
+    const key = `${tx.ticker}|${tx.tradeDate}|${tx.action}|${tx.isAssignment}`
     const group = groups.get(key)
     if (group) {
       group.push(tx)

@@ -28,7 +28,7 @@ export type DashboardPosition = {
 
 type Props = {
   positions: DashboardPosition[]
-  accounts: { id: string; name: string }[]
+  accounts: { id: string; name: string; optionAssignmentFee: number }[]
   setups: { id: string; name: string }[]
 }
 
@@ -142,6 +142,7 @@ export function DashboardOpenPositions({ positions, accounts, setups }: Props) {
             optionType: closingTrade.optionType,
             projectedProfit: closingTrade.projectedProfit,
           }}
+          assignmentFee={accounts.find(a => a.id === closingTrade.accountId)?.optionAssignmentFee ?? 0}
         />
       )}
 

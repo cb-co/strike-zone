@@ -44,7 +44,7 @@ export type TableTrade = {
 type Props = {
   trades: TableTrade[]
   variant: 'closed' | 'open' | 'losses'
-  accounts: { id: string; name: string }[]
+  accounts: { id: string; name: string; optionAssignmentFee: number }[]
   setups: { id: string; name: string }[]
 }
 
@@ -260,6 +260,7 @@ export function TradesTable({ trades, variant, accounts, setups }: Props) {
             optionType: closingTrade.optionType,
             projectedProfit: closingTrade.projectedProfit,
           }}
+          assignmentFee={accounts.find(a => a.id === closingTrade.accountId)?.optionAssignmentFee ?? 0}
         />
       )}
 

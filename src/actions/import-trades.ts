@@ -20,6 +20,7 @@ export type ImportRecord = {
   action: 'BUY' | 'SELL' | 'SELLTOOPEN' | 'SELLTOCLOSE' | 'BUYTOOPEN' | 'BUYTOCLOSE'
   netTotal: number
   contractSize: number   // 100 for options, 1 for stocks
+  isAssignment?: boolean // stock leg of an option assignment; commission = assignment fee
 }
 
 export type ImportResult = {
@@ -69,7 +70,7 @@ export async function importQfxTrades(
   // Sort chronologically; within the same date closes run before opens so a
   // close with no matching open gets skipped before the new open is created.
   const isClose = (r: ImportRecord) =>
-    r.action === 'BUYTOCLOSE' || r.action === 'SELLTOCLOSE' || r.action === 'SELL'
+    r.action === 'BUYTOCLOSE' || r.action === 'SELLTOCLOSE' || r.action === 'SELL' || !!r.isAssignment
   const sorted = [...records].sort((a, b) => {
     if (a.date < b.date) return -1
     if (a.date > b.date) return 1
@@ -84,6 +85,64 @@ export async function importQfxTrades(
   const errors: string[] = []
 
   for (const rec of sorted) {
+    // Assignment: stock leg of an option exercise — close the option with the assignment fee,
+    // then record the stock at zero commission (fee already on the option side)
+    if (rec.isAssignment) {
+      // BUY stock → short PUT was assigned; SELL stock → short CALL was assigned
+      const assignedOptionType = rec.action === 'BUY' ? 'PUT' : 'CALL'
+      const openOption = await prisma.trade.findFirst({
+        where: {
+          userId, accountId,
+          ticker: rec.ticker,
+          side: 'SHORT',
+          optionType: assignedOptionType,
+          closeDate: null,
+          expiration: { lte: new Date(rec.date) },
+          strike: { gte: rec.unitPrice - 0.01, lte: rec.unitPrice + 0.01 },
+        },
+      })
+
+      if (openOption) {
+        const openCommission = Number(openOption.commission)
+        const totalCommission = openCommission + rec.commission
+        const netPnl = calcNetPnl({
+          side: 'SHORT',
+          entryPrice: Number(openOption.entryPrice),
+          exitPrice: 0,
+          quantity: Number(openOption.quantity),
+          contractSize: openOption.contractSize,
+          commission: totalCommission,
+        })
+        await prisma.trade.update({
+          where: { id: openOption.id },
+          data: { exitPrice: 0, closeDate: new Date(rec.date), netPnl },
+        })
+        closed++
+      } else {
+        skipped.push(`${rec.ticker} assignment (no matching open ${rec.action === 'BUY' ? 'PUT' : 'CALL'})`)
+      }
+
+      // Record the stock acquisition at zero commission (fee is on the option)
+      await prisma.trade.create({
+        data: {
+          userId,
+          accountId,
+          name: rec.ticker,
+          ticker: rec.ticker,
+          symbol: rec.ticker,
+          side: 'LONG',
+          quantity: rec.quantity,
+          entryPrice: rec.unitPrice,
+          openDate: new Date(rec.date),
+          source: 'TS_IMPORT',
+          contractSize: 1,
+          commission: 0,
+        },
+      })
+      created++
+      continue
+    }
+
     const isOpenAction = rec.action === 'SELLTOOPEN' || rec.action === 'BUYTOOPEN' || rec.action === 'BUY'
 
     if (isOpenAction) {

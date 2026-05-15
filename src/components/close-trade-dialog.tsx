@@ -5,6 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Checkbox } from '@/components/ui/checkbox'
 import { DatePicker } from '@/components/date-picker'
 import { closeTrade } from '@/actions/trades'
 
@@ -24,34 +25,39 @@ type Props = {
   open: boolean
   onOpenChange: (open: boolean) => void
   trade: CloseTradeTrade
+  assignmentFee?: number
 }
 
 function today() {
   return new Date().toISOString().split('T')[0]
 }
 
-export function CloseTradeDialog({ open, onOpenChange, trade }: Props) {
+export function CloseTradeDialog({ open, onOpenChange, trade, assignmentFee = 0 }: Props) {
   const [exitPrice, setExitPrice] = useState('')
   const [closeDate, setCloseDate] = useState(today())
+  const [isAssignment, setIsAssignment] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const mult = trade.contractSize ?? 1
   const exitP = parseFloat(exitPrice) || 0
-  const pnl = exitP > 0
+  const grossPnl = exitP > 0 || isAssignment
     ? trade.side === 'SHORT'
       ? (trade.entryPrice - exitP) * trade.quantity * mult
       : (exitP - trade.entryPrice) * trade.quantity * mult
+    : null
+  const pnl = grossPnl !== null
+    ? grossPnl - (isAssignment ? assignmentFee : 0)
     : null
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     const price = parseFloat(exitPrice)
-    if (isNaN(price)) return
+    if (isNaN(price) && !isAssignment) return
     setLoading(true)
     setError(null)
     try {
-      await closeTrade(trade.id, price, closeDate)
+      await closeTrade(trade.id, isAssignment ? 0 : price, closeDate, isAssignment)
       onOpenChange(false)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to close trade')
@@ -90,7 +96,8 @@ export function CloseTradeDialog({ open, onOpenChange, trade }: Props) {
                 placeholder="0.00"
                 value={exitPrice}
                 onChange={(e) => setExitPrice(e.target.value)}
-                required
+                disabled={isAssignment}
+                required={!isAssignment}
                 autoFocus
               />
             </div>
@@ -99,6 +106,19 @@ export function CloseTradeDialog({ open, onOpenChange, trade }: Props) {
               <DatePicker name="closeDate" value={closeDate} onValueChange={setCloseDate} />
             </div>
           </div>
+
+          {trade.optionType && (
+            <div className="flex items-center gap-2">
+              <Checkbox
+                id="assignment"
+                checked={isAssignment}
+                onCheckedChange={(v) => setIsAssignment(!!v)}
+              />
+              <label htmlFor="assignment" className="text-sm cursor-pointer select-none">
+                Assigned {assignmentFee > 0 && <span className="text-muted-foreground">(+${assignmentFee.toFixed(2)} fee, exit at $0)</span>}
+              </label>
+            </div>
+          )}
 
           {pnl !== null && (
             <div className="rounded-md border px-3 py-2 text-xs flex justify-between">
