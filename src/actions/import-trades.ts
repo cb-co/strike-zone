@@ -15,6 +15,7 @@ export type ImportRecord = {
   expiration?: string    // YYYY-MM-DD, options only
   quantity: number       // contracts for options, shares for stocks
   unitPrice: number
+  commission: number     // actual commission paid on this transaction leg
   date: string           // YYYY-MM-DD
   action: 'BUY' | 'SELL' | 'SELLTOOPEN' | 'SELLTOCLOSE' | 'BUYTOOPEN' | 'BUYTOCLOSE'
   netTotal: number
@@ -125,6 +126,7 @@ export async function importQfxTrades(
               openDate: new Date(rec.date),
               source: 'TS_IMPORT',
               contractSize: 1,
+              commission: rec.commission,
             },
           })
         } else {
@@ -149,6 +151,7 @@ export async function importQfxTrades(
               expiration: new Date(rec.expiration!),
               contractSize: rec.contractSize,
               projectedProfit,
+              commission: rec.commission,
             },
           })
         }
@@ -175,12 +178,17 @@ export async function importQfxTrades(
     const tradeQty = Number(openTrade.quantity)
     const closeQty = Math.min(rec.quantity, tradeQty)
 
+    // Pro-rate open commission if this is a partial close
+    const openCommission = Number(openTrade.commission) * (closeQty / tradeQty)
+    const totalCommission = openCommission + rec.commission
+
     const netPnl = calcNetPnl({
       side: openTrade.side as 'LONG' | 'SHORT',
       entryPrice: Number(openTrade.entryPrice),
       exitPrice: rec.unitPrice,
       quantity: closeQty,
       contractSize: openTrade.contractSize,
+      commission: totalCommission,
     })
 
     if (closeQty >= tradeQty) {
@@ -191,10 +199,12 @@ export async function importQfxTrades(
     } else {
       // Partial close: shrink the open, create a closed record for the closed portion
       const remainingQty = tradeQty - closeQty
+      const remainingCommission = Number(openTrade.commission) * (remainingQty / tradeQty)
       await prisma.trade.update({
         where: { id: openTrade.id },
         data: {
           quantity: remainingQty,
+          commission: remainingCommission,
           projectedProfit: openTrade.projectedProfit != null
             ? Number(openTrade.projectedProfit) * (remainingQty / tradeQty)
             : null,
@@ -216,6 +226,7 @@ export async function importQfxTrades(
           strike: openTrade.strike,
           expiration: openTrade.expiration,
           contractSize: openTrade.contractSize,
+          commission: openCommission,
           projectedProfit: openTrade.projectedProfit != null
             ? Number(openTrade.projectedProfit) * (closeQty / tradeQty)
             : null,

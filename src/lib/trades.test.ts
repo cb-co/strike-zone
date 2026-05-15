@@ -27,18 +27,18 @@ describe('calcNetPnl', () => {
 
 describe('calcOpenRisk', () => {
   it('single stock position', () => {
-    expect(calcOpenRisk([{ entryPrice: 10, quantity: 5, contractSize: 1 }])).toBe(50)
+    expect(calcOpenRisk([{ side: 'LONG', entryPrice: 10, quantity: 5, contractSize: 1 }])).toBe(50)
   })
   it('sums multiple positions', () => {
     expect(calcOpenRisk([
-      { entryPrice: 10, quantity: 2, contractSize: 1 },
-      { entryPrice: 1.5, quantity: 1, contractSize: 100 },
+      { side: 'LONG', entryPrice: 10, quantity: 2, contractSize: 1 },
+      { side: 'LONG', entryPrice: 1.5, quantity: 1, contractSize: 100 },
     ])).toBe(170)
   })
   it('empty array returns 0', () => {
     expect(calcOpenRisk([])).toBe(0)
   })
   it('null contractSize treated as 1', () => {
-    expect(calcOpenRisk([{ entryPrice: 5, quantity: 10, contractSize: null }])).toBe(50)
+    expect(calcOpenRisk([{ side: 'LONG', entryPrice: 5, quantity: 10, contractSize: null }])).toBe(50)
   })
 })

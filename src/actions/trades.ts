@@ -48,10 +48,17 @@ export async function createTrade(formData: FormData) {
   const raw = Object.fromEntries(formData)
   const data = tradeSchema.parse(raw)
 
-  // Validate: options require strike and expiration
   if (data.optionType && (!data.strike || !data.expiration)) {
     throw new Error('Options require strike price and expiration date')
   }
+
+  const account = await prisma.account.findFirst({ where: { id: data.accountId, userId } })
+  if (!account) throw new Error('Account not found')
+
+  const commissionRate = data.optionType
+    ? Number(account.commissionPerOption)
+    : Number(account.commissionPerStock)
+  const commission = data.quantity * commissionRate
 
   await prisma.trade.create({
     data: {
@@ -72,6 +79,7 @@ export async function createTrade(formData: FormData) {
       strike: data.strike ?? null,
       expiration: data.expiration ? new Date(data.expiration) : null,
       contractSize: data.contractSize ?? null,
+      commission,
     },
   })
 
@@ -145,8 +153,17 @@ export async function deleteTrade(id: string) {
 
 export async function closeTrade(id: string, exitPrice: number, closeDate: string) {
   const userId = await getUserId()
-  const trade = await prisma.trade.findUnique({ where: { id, userId } })
+  const trade = await prisma.trade.findUnique({
+    where: { id, userId },
+    include: { account: true },
+  })
   if (!trade) throw new Error('Trade not found')
+
+  const closeRate = trade.optionType
+    ? Number(trade.account.commissionPerOption)
+    : Number(trade.account.commissionPerStock)
+  const closeCommission = Number(trade.quantity) * closeRate
+  const totalCommission = Number(trade.commission) + closeCommission
 
   const netPnl = calcNetPnl({
     side: trade.side,
@@ -154,6 +171,7 @@ export async function closeTrade(id: string, exitPrice: number, closeDate: strin
     exitPrice,
     quantity: Number(trade.quantity),
     contractSize: trade.contractSize,
+    commission: totalCommission,
   })
 
   await prisma.trade.update({
@@ -190,20 +208,24 @@ export async function rollTrade(id: string, formData: FormData) {
   const raw = Object.fromEntries(formData)
   const data = rollSchema.parse(raw)
 
-  const original = await prisma.trade.findUnique({ where: { id, userId } })
+  const original = await prisma.trade.findUnique({
+    where: { id, userId },
+    include: { account: true },
+  })
   if (!original) throw new Error('Trade not found')
 
   const contractSize = data.newContractSize ?? original.contractSize
   const qty = Number(original.quantity)
   const mult = contractSize ?? 1
 
-  // netCredit is per-contract option price (e.g. 3.2 = $3.20/contract)
-  // exitPrice = newEntry − netCreditPerContract  [SHORT]
-  // exitPrice = newEntry + netCreditPerContract  [LONG]
   const exitPrice =
     original.side === 'SHORT'
       ? data.newEntryPrice - data.netCredit
       : data.newEntryPrice + data.netCredit
+
+  // Roll = close original + open new: two commission legs on original trade
+  const closeCommission = qty * Number(original.account.commissionPerOption)
+  const totalCommission = Number(original.commission) + closeCommission
 
   const netPnl = calcNetPnl({
     side: original.side,
@@ -211,6 +233,7 @@ export async function rollTrade(id: string, formData: FormData) {
     exitPrice,
     quantity: qty,
     contractSize: original.contractSize,
+    commission: totalCommission,
   })
 
   const projectedProfit =

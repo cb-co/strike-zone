@@ -4,6 +4,7 @@ export type TradeForPnl = {
   exitPrice: number
   quantity: number
   contractSize?: number | null
+  commission?: number   // total commissions for both legs (open + close)
 }
 
 export function calcNetPnl(t: TradeForPnl): number {
@@ -11,7 +12,7 @@ export function calcNetPnl(t: TradeForPnl): number {
   const diff = t.side === 'LONG'
     ? t.exitPrice - t.entryPrice
     : t.entryPrice - t.exitPrice
-  return diff * t.quantity * mult
+  return diff * t.quantity * mult - (t.commission ?? 0)
 }
 
 export type OpenTrade = {
