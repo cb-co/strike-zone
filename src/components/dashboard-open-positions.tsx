@@ -101,10 +101,10 @@ export function DashboardOpenPositions({ positions, accounts, setups }: Props) {
                 </td>
                 <td className="px-3 py-2">
                   <div className="flex justify-end gap-1">
-                    <Button size="sm" variant="ghost" className="h-6 px-2 text-xs text-muted-foreground hover:text-foreground" onClick={() => setEditTrade(t)}>Edit</Button>
-                    <Button size="sm" variant="ghost" className="h-6 px-2 text-xs text-rose-600 hover:text-rose-700 hover:bg-rose-50" onClick={() => setClosingTrade(t)}>Close</Button>
+                    <Button size="sm" variant="outline" onClick={() => setEditTrade(t)}>Edit</Button>
+                    <Button size="sm" variant="outline" onClick={() => setClosingTrade(t)}>Close</Button>
                     {t.optionType && (
-                      <Button size="sm" variant="ghost" className="h-6 px-2 text-xs text-blue-600 hover:text-blue-700 hover:bg-blue-50" onClick={() => setRollingTrade(t)}>Roll</Button>
+                      <Button size="sm" variant="outline" onClick={() => setRollingTrade(t)}>Roll</Button>
                     )}
                   </div>
                 </td>

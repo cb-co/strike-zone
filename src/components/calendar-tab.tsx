@@ -63,8 +63,8 @@ export function CalendarTab({ trades, month, year }: Props) {
   for (const trade of trades) {
     if (!trade.closeDate) continue
     const d = new Date(trade.closeDate)
-    if (d.getMonth() + 1 !== month || d.getFullYear() !== year) continue
-    const day = d.getDate()
+    if (d.getUTCMonth() + 1 !== month || d.getUTCFullYear() !== year) continue
+    const day = d.getUTCDate()
     const existing = byDay.get(day) ?? { total: 0, count: 0 }
     byDay.set(day, { total: existing.total + (trade.netPnl ?? 0), count: existing.count + 1 })
   }

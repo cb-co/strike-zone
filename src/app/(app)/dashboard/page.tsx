@@ -147,13 +147,13 @@ export default async function DashboardPage() {
   // Goal progress — yearly
   const goalExpectedYTD = g ? expectedCumPnL(g, today) : 0
   const goalAmount = g?.goalAmount ?? 0
-  const goalActualPct = goalAmount > 0 ? Math.min(1, ytdPnl / goalAmount) * 100 : 0
-  const goalExpectedPct = goalAmount > 0 ? Math.min(1, goalExpectedYTD / goalAmount) * 100 : 0
+  const goalActualPct = goalAmount > 0 ? Math.max(0, Math.min(1, ytdPnl / goalAmount)) * 100 : 0
+  const goalExpectedPct = goalAmount > 0 ? Math.max(0, Math.min(1, goalExpectedYTD / goalAmount)) * 100 : 0
 
   // Goal progress — current month
   const monthExpected = breakdown ? breakdown[currentMonth].expectedPnl : 0
   const monthGap = monthlyPnl - monthExpected
-  const monthActualPct = monthExpected > 0 ? Math.min(1, monthlyPnl / monthExpected) * 100 : 0
+  const monthActualPct = monthExpected > 0 ? Math.max(0, Math.min(1, monthlyPnl / monthExpected)) * 100 : 0
 
   const kpis = [
     {
