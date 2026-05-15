@@ -72,120 +72,124 @@ export async function importQfxTrades(
   let skipped = 0
   const errors: string[] = []
 
-  // Process opens first
+  // Process opens — merge into existing open position for same symbol
   for (const rec of opens) {
-    const existing = await prisma.trade.findFirst({
-      where: {
-        userId,
-        accountId,
-        symbol: rec.symbol,
-        openDate: new Date(rec.date),
-        entryPrice: rec.unitPrice,
-      },
-    })
-    if (existing) {
-      skipped++
-      continue
-    }
-
     const side: TradeSide = rec.action === 'SELLTOOPEN' ? 'SHORT' : 'LONG'
-    const projectedProfit =
-      side === 'SHORT'
+
+    const existing = await prisma.trade.findFirst({
+      where: { userId, accountId, symbol: rec.symbol, closeDate: null },
+    })
+
+    if (existing) {
+      // Add to position: weighted-average the entry price, accumulate contracts
+      const existingQty = Number(existing.quantity)
+      const newQty = existingQty + rec.contracts
+      const newEntry = Math.round(
+        ((Number(existing.entryPrice) * existingQty) + (rec.unitPrice * rec.contracts)) / newQty * 100
+      ) / 100
+      const newProjectedProfit = existing.side === 'SHORT'
+        ? newEntry * newQty * (existing.contractSize ?? 100)
+        : null
+
+      await prisma.trade.update({
+        where: { id: existing.id },
+        data: { quantity: newQty, entryPrice: newEntry, projectedProfit: newProjectedProfit },
+      })
+    } else {
+      const projectedProfit = side === 'SHORT'
         ? rec.unitPrice * rec.contracts * rec.contractSize
         : null
 
-    await prisma.trade.create({
-      data: {
-        userId,
-        accountId,
-        name: tradeName(rec),
-        ticker: rec.ticker,
-        symbol: rec.symbol,
-        side,
-        quantity: rec.contracts,
-        entryPrice: rec.unitPrice,
-        openDate: new Date(rec.date),
-        source: 'TS_IMPORT',
-        optionType: rec.optionType as OptionType,
-        strike: rec.strike,
-        expiration: new Date(rec.expiration),
-        contractSize: rec.contractSize,
-        projectedProfit,
-      },
-    })
-    created++
+      await prisma.trade.create({
+        data: {
+          userId,
+          accountId,
+          name: tradeName(rec),
+          ticker: rec.ticker,
+          symbol: rec.symbol,
+          side,
+          quantity: rec.contracts,
+          entryPrice: rec.unitPrice,
+          openDate: new Date(rec.date),
+          source: 'TS_IMPORT',
+          optionType: rec.optionType as OptionType,
+          strike: rec.strike,
+          expiration: new Date(rec.expiration),
+          contractSize: rec.contractSize,
+          projectedProfit,
+        },
+      })
+      created++
+    }
   }
 
-  // Process closes next — FIFO, quantity-aware
-  // One close record can span multiple open records (e.g. two 1-lot opens closed together).
-  // Partial closes (close fewer contracts than an open trade holds) split the trade.
+  // Process closes — quantity-aware, supports partial closes
   for (const rec of closes) {
-    const openTrades = await prisma.trade.findMany({
+    const openTrade = await prisma.trade.findFirst({
       where: { userId, accountId, symbol: rec.symbol, closeDate: null },
-      orderBy: { openDate: 'asc' },
     })
 
-    if (openTrades.length === 0) {
+    if (!openTrade) {
       skipped++
       continue
     }
 
-    let remaining = rec.contracts
+    const tradeQty = Number(openTrade.quantity)
+    const closeQty = Math.min(rec.contracts, tradeQty)
 
-    for (const openTrade of openTrades) {
-      if (remaining <= 0) break
+    const netPnl = calcNetPnl({
+      side: openTrade.side as 'LONG' | 'SHORT',
+      entryPrice: Number(openTrade.entryPrice),
+      exitPrice: rec.unitPrice,
+      quantity: closeQty,
+      contractSize: openTrade.contractSize,
+    })
 
-      const tradeQty = Number(openTrade.quantity)
-      const closeQty = Math.min(tradeQty, remaining)
-      remaining -= closeQty
-
-      const netPnl = calcNetPnl({
-        side: openTrade.side as 'LONG' | 'SHORT',
-        entryPrice: Number(openTrade.entryPrice),
-        exitPrice: rec.unitPrice,
-        quantity: closeQty,
-        contractSize: openTrade.contractSize,
+    if (closeQty >= tradeQty) {
+      // Full close
+      await prisma.trade.update({
+        where: { id: openTrade.id },
+        data: { exitPrice: rec.unitPrice, closeDate: new Date(rec.date), netPnl },
       })
-
-      if (closeQty === tradeQty) {
-        await prisma.trade.update({
-          where: { id: openTrade.id },
-          data: { exitPrice: rec.unitPrice, closeDate: new Date(rec.date), netPnl },
-        })
-      } else {
-        // Partial close: shrink the open, create a new closed record for the closed portion
-        await prisma.trade.update({
-          where: { id: openTrade.id },
-          data: { quantity: tradeQty - closeQty },
-        })
-        await prisma.trade.create({
-          data: {
-            userId,
-            accountId,
-            name: openTrade.name,
-            ticker: openTrade.ticker,
-            symbol: openTrade.symbol,
-            side: openTrade.side,
-            quantity: closeQty,
-            entryPrice: openTrade.entryPrice,
-            openDate: openTrade.openDate,
-            source: openTrade.source,
-            optionType: openTrade.optionType,
-            strike: openTrade.strike,
-            expiration: openTrade.expiration,
-            contractSize: openTrade.contractSize,
-            projectedProfit: openTrade.projectedProfit != null
-              ? Number(openTrade.projectedProfit) * (closeQty / tradeQty)
-              : null,
-            exitPrice: rec.unitPrice,
-            closeDate: new Date(rec.date),
-            netPnl,
-          },
-        })
-      }
-
-      closed++
+    } else {
+      // Partial close: shrink the open, create a closed record for the closed portion
+      const remainingQty = tradeQty - closeQty
+      await prisma.trade.update({
+        where: { id: openTrade.id },
+        data: {
+          quantity: remainingQty,
+          projectedProfit: openTrade.projectedProfit != null
+            ? Number(openTrade.projectedProfit) * (remainingQty / tradeQty)
+            : null,
+        },
+      })
+      await prisma.trade.create({
+        data: {
+          userId,
+          accountId,
+          name: openTrade.name,
+          ticker: openTrade.ticker,
+          symbol: openTrade.symbol,
+          side: openTrade.side,
+          quantity: closeQty,
+          entryPrice: openTrade.entryPrice,
+          openDate: openTrade.openDate,
+          source: openTrade.source,
+          optionType: openTrade.optionType,
+          strike: openTrade.strike,
+          expiration: openTrade.expiration,
+          contractSize: openTrade.contractSize,
+          projectedProfit: openTrade.projectedProfit != null
+            ? Number(openTrade.projectedProfit) * (closeQty / tradeQty)
+            : null,
+          exitPrice: rec.unitPrice,
+          closeDate: new Date(rec.date),
+          netPnl,
+        },
+      })
     }
+
+    closed++
   }
 
   // Auto-close options that expired worthless (SHORT = expires at 0 profit, LONG = full loss)
