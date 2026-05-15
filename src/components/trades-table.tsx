@@ -37,6 +37,7 @@ export type TableTrade = {
   strike: number | null
   expiration: Date | null
   contractSize: number | null
+  commission: number
   accountId: string
   tradeSetups: { setupId: string; setup: { name: string } }[]
 }

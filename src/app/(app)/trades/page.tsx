@@ -43,6 +43,7 @@ export default async function TradesPage(props: Props) {
     projectedProfit: t.projectedProfit ? Number(t.projectedProfit) : null,
     netPnl: t.netPnl ? Number(t.netPnl) : null,
     strike: t.strike ? Number(t.strike) : null,
+    commission: Number(t.commission),
     tradeSetups: t.tradeSetups.map((ts) => ({
       setupId: ts.setupId,
       setup: { name: ts.setup.name },

@@ -122,24 +122,83 @@ export async function importQfxTrades(
         skipped.push(`${rec.ticker} assignment (no matching open ${rec.action === 'BUY' ? 'PUT' : 'CALL'})`)
       }
 
-      // Record the stock acquisition at zero commission (fee is on the option)
-      await prisma.trade.create({
-        data: {
-          userId,
-          accountId,
-          name: rec.ticker,
-          ticker: rec.ticker,
-          symbol: rec.ticker,
-          side: 'LONG',
-          quantity: rec.quantity,
-          entryPrice: rec.unitPrice,
-          openDate: new Date(rec.date),
-          source: 'TS_IMPORT',
-          contractSize: 1,
-          commission: 0,
-        },
-      })
-      created++
+      // Handle the stock leg — commission is $0 since the fee is already on the option
+      if (rec.action === 'BUY') {
+        // Short PUT assigned: you receive shares at strike → new LONG position
+        await prisma.trade.create({
+          data: {
+            userId,
+            accountId,
+            name: rec.ticker,
+            ticker: rec.ticker,
+            symbol: rec.ticker,
+            side: 'LONG',
+            quantity: rec.quantity,
+            entryPrice: rec.unitPrice,
+            openDate: new Date(rec.date),
+            source: 'TS_IMPORT',
+            contractSize: 1,
+            commission: 0,
+          },
+        })
+        created++
+      } else {
+        // Short CALL assigned: you deliver shares at strike → close existing LONG position
+        const openStock = await prisma.trade.findFirst({
+          where: {
+            userId, accountId,
+            ticker: rec.ticker,
+            side: 'LONG',
+            optionType: null,
+            expiration: null,
+            closeDate: null,
+          },
+        })
+        if (openStock) {
+          const stockQty = Number(openStock.quantity)
+          const closeQty = Math.min(rec.quantity, stockQty)
+          const netPnl = calcNetPnl({
+            side: 'LONG',
+            entryPrice: Number(openStock.entryPrice),
+            exitPrice: rec.unitPrice,
+            quantity: closeQty,
+            contractSize: 1,
+            commission: 0,
+          })
+          if (closeQty >= stockQty) {
+            await prisma.trade.update({
+              where: { id: openStock.id },
+              data: { exitPrice: rec.unitPrice, closeDate: new Date(rec.date), netPnl },
+            })
+          } else {
+            await prisma.trade.update({
+              where: { id: openStock.id },
+              data: { quantity: stockQty - closeQty },
+            })
+            await prisma.trade.create({
+              data: {
+                userId, accountId,
+                name: openStock.name,
+                ticker: openStock.ticker,
+                symbol: openStock.symbol,
+                side: 'LONG',
+                quantity: closeQty,
+                entryPrice: openStock.entryPrice,
+                openDate: openStock.openDate,
+                source: openStock.source,
+                contractSize: 1,
+                commission: 0,
+                exitPrice: rec.unitPrice,
+                closeDate: new Date(rec.date),
+                netPnl,
+              },
+            })
+          }
+          closed++
+        } else {
+          skipped.push(`${rec.ticker} assignment (no open LONG stock to deliver)`)
+        }
+      }
       continue
     }
 
