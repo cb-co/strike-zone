@@ -1,11 +1,14 @@
 'use client'
 
 import { ThemeProvider as NextThemesProvider } from 'next-themes'
+import { PaletteProvider } from '@/lib/palette'
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   return (
     <NextThemesProvider attribute="class" defaultTheme="dark" disableTransitionOnChange>
-      {children}
+      <PaletteProvider>
+        {children}
+      </PaletteProvider>
     </NextThemesProvider>
   )
 }

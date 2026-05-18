@@ -2,8 +2,6 @@
 
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { useEffect, useState } from 'react'
-import { useTheme } from 'next-themes'
 import { createClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
 import {
@@ -14,10 +12,9 @@ import {
   Wallet01Icon,
   Settings01Icon,
   Logout01Icon,
-  Moon01Icon,
-  Sun01Icon,
 } from '@hugeicons/core-free-icons'
 import { HugeiconsIcon } from '@hugeicons/react'
+import { ThemeSelector } from '@/components/theme-selector'
 
 const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: DashboardSquare01Icon },
@@ -31,9 +28,6 @@ const navItems = [
 export function Sidebar() {
   const pathname = usePathname()
   const router = useRouter()
-  const { resolvedTheme, setTheme } = useTheme()
-  const [mounted, setMounted] = useState(false)
-  useEffect(() => setMounted(true), [])
 
   async function signOut() {
     const supabase = createClient()
@@ -71,16 +65,7 @@ export function Sidebar() {
 
       {/* Bottom actions */}
       <div className="p-2 border-t space-y-1">
-        {mounted && (
-          <button
-            onClick={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')}
-            title={resolvedTheme === 'dark' ? 'Light mode' : 'Dark mode'}
-            className="w-full flex items-center gap-2.5 px-2 md:px-3 py-2 rounded-md text-sm font-medium text-sidebar-foreground hover:bg-sidebar-accent/50 transition-colors"
-          >
-            <HugeiconsIcon icon={resolvedTheme === 'dark' ? Sun01Icon : Moon01Icon} size={18} className="shrink-0" />
-            <span className="hidden md:block">{resolvedTheme === 'dark' ? 'Light mode' : 'Dark mode'}</span>
-          </button>
-        )}
+        <ThemeSelector />
         <button
           onClick={signOut}
           title="Sign out"

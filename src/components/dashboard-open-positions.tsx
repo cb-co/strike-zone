@@ -20,6 +20,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { cn } from '@/lib/utils'
+import { formatCurrency } from '@/lib/format'
 import { TradeForm, type TradeFormTrade } from '@/components/trade-form'
 import { CloseTradeDialog } from '@/components/close-trade-dialog'
 import { RollTradeDialog } from '@/components/roll-trade-dialog'
@@ -99,14 +100,14 @@ export function DashboardOpenPositions({ positions, projProfitTotal, accounts, s
                     </span>
                   </td>
                   <td className="px-3 py-2 text-right tabular-nums">{t.quantity}</td>
-                  <td className="px-3 py-2 text-right tabular-nums">${t.entryPrice.toFixed(2)}</td>
+                  <td className="px-3 py-2 text-right tabular-nums">{formatCurrency(t.entryPrice)}</td>
                   <td className={cn(
                     'px-3 py-2 text-right tabular-nums',
                     t.projectedProfit != null
                       ? t.projectedProfit >= 0 ? 'text-emerald-600' : 'text-rose-600'
                       : 'text-muted-foreground',
                   )}>
-                    {t.projectedProfit != null ? `$${t.projectedProfit.toFixed(0)}` : '—'}
+                    {t.projectedProfit != null ? formatCurrency(t.projectedProfit, { minimumFractionDigits: 0, maximumFractionDigits: 0 }) : '—'}
                   </td>
                   <td className="px-3 py-2 text-right text-muted-foreground tabular-nums">{daysOpen}d</td>
                   <td className={cn(
@@ -144,7 +145,7 @@ export function DashboardOpenPositions({ positions, projProfitTotal, accounts, s
               <td colSpan={5} className="px-3 py-2 text-right text-xs font-medium text-muted-foreground">Total Proj. Profit</td>
               <td className="px-3 py-2 text-right text-xs font-medium">
                 <span className={projProfitTotal >= 0 ? 'text-emerald-600' : 'text-rose-600'}>
-                  ${projProfitTotal.toFixed(0)}
+                  {formatCurrency(projProfitTotal, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
                 </span>
               </td>
               <td colSpan={3}></td>

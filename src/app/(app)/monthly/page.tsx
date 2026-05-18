@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { prisma } from '@/lib/prisma'
 import { monthlyBreakdown, expectedCumPnL } from '@/lib/goals'
 import { cn } from '@/lib/utils'
+import { formatCurrency } from '@/lib/format'
 
 export default async function MonthlyPage(props: { searchParams?: Promise<Record<string, string | string[]>> }) {
   const searchParams = await props.searchParams
@@ -68,8 +69,8 @@ export default async function MonthlyPage(props: { searchParams?: Promise<Record
   for (const trade of trades) {
     if (!trade.closeDate || !trade.netPnl) continue
     const d = new Date(trade.closeDate)
-    if (d.getFullYear() !== goal.year) continue
-    actualMonthlyPnl[d.getMonth()] += Number(trade.netPnl)
+    if (d.getUTCFullYear() !== goal.year) continue
+    actualMonthlyPnl[d.getUTCMonth()] += Number(trade.netPnl)
   }
 
   const today = new Date()
@@ -104,9 +105,9 @@ export default async function MonthlyPage(props: { searchParams?: Promise<Record
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
         {[
           { label: 'Goal Amount', value: `$${g.goalAmount.toLocaleString()}` },
-          { label: 'Actual YTD', value: `$${actualYTD.toFixed(2)}`, color: actualYTD >= 0 ? 'text-green-600' : 'text-red-600' },
-          { label: 'Expected YTD', value: `$${expectedYTD.toFixed(2)}` },
-          { label: 'Gap', value: `${(actualYTD - expectedYTD) >= 0 ? '+' : ''}$${(actualYTD - expectedYTD).toFixed(2)}`, color: (actualYTD - expectedYTD) >= 0 ? 'text-green-600' : 'text-red-600' },
+          { label: 'Actual YTD', value: formatCurrency(actualYTD), color: actualYTD >= 0 ? 'text-green-600' : 'text-red-600' },
+          { label: 'Expected YTD', value: formatCurrency(expectedYTD) },
+          { label: 'Gap', value: `${(actualYTD - expectedYTD) >= 0 ? '+' : ''}${formatCurrency(actualYTD - expectedYTD)}`, color: (actualYTD - expectedYTD) >= 0 ? 'text-green-600' : 'text-red-600' },
         ].map(({ label, value, color }) => (
           <div key={label} className="rounded-lg border p-4 space-y-1">
             <p className="text-xs text-muted-foreground">{label}</p>
@@ -150,27 +151,27 @@ export default async function MonthlyPage(props: { searchParams?: Promise<Record
                   )}
                 >
                   <td className="px-4 py-2.5 font-medium">{MONTH_NAMES[i]}</td>
-                  <td className="px-4 py-2.5 text-right">${b.expectedPnl.toFixed(2)}</td>
-                  <td className="px-4 py-2.5 text-right">${g.monthlyFixedWd.toFixed(2)}</td>
-                  <td className="px-4 py-2.5 text-right">${b.expectedVarWd.toFixed(2)}</td>
-                  <td className="px-4 py-2.5 text-right">${b.expectedTotal.toFixed(2)}</td>
+                  <td className="px-4 py-2.5 text-right">{formatCurrency(b.expectedPnl)}</td>
+                  <td className="px-4 py-2.5 text-right">{formatCurrency(g.monthlyFixedWd)}</td>
+                  <td className="px-4 py-2.5 text-right">{formatCurrency(b.expectedVarWd)}</td>
+                  <td className="px-4 py-2.5 text-right">{formatCurrency(b.expectedTotal)}</td>
                   <td className="px-4 py-2.5 text-right">
                     {isFuture ? <span className="text-muted-foreground">—</span> : (
-                      <span className={actual >= 0 ? 'text-green-600' : 'text-red-600'}>${actual.toFixed(2)}</span>
+                      <span className={actual >= 0 ? 'text-green-600' : 'text-red-600'}>{formatCurrency(actual)}</span>
                     )}
                   </td>
                   <td className="px-4 py-2.5 text-right">
                     {isFuture
                       ? <span className="text-xs bg-muted rounded px-1 py-0.5">future</span>
                       : <span className={(actual - b.expectedTotal) >= 0 ? 'text-green-600' : 'text-red-600'}>
-                          {(actual - b.expectedTotal) >= 0 ? '+' : ''}${(actual - b.expectedTotal).toFixed(2)}
+                          {(actual - b.expectedTotal) >= 0 ? '+' : ''}{formatCurrency(actual - b.expectedTotal)}
                         </span>
                     }
                   </td>
                   <td className="px-4 py-2.5 text-right font-mono">
-                    {isFuture ? '—' : `$${cumActual.toFixed(2)}`}
+                    {isFuture ? '—' : formatCurrency(cumActual)}
                   </td>
-                  <td className="px-4 py-2.5 text-right font-mono">${cumExpected.toFixed(2)}</td>
+                  <td className="px-4 py-2.5 text-right font-mono">{formatCurrency(cumExpected)}</td>
                 </tr>
               )
             })}
