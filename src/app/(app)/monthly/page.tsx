@@ -162,8 +162,8 @@ export default async function MonthlyPage(props: { searchParams?: Promise<Record
                   <td className="px-4 py-2.5 text-right">
                     {isFuture
                       ? <span className="text-xs bg-muted rounded px-1 py-0.5">future</span>
-                      : <span className={(actual - b.expectedPnl) >= 0 ? 'text-green-600' : 'text-red-600'}>
-                          {(actual - b.expectedPnl) >= 0 ? '+' : ''}${(actual - b.expectedPnl).toFixed(2)}
+                      : <span className={(actual - b.expectedTotal) >= 0 ? 'text-green-600' : 'text-red-600'}>
+                          {(actual - b.expectedTotal) >= 0 ? '+' : ''}${(actual - b.expectedTotal).toFixed(2)}
                         </span>
                     }
                   </td>

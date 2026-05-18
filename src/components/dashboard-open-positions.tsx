@@ -2,10 +2,28 @@
 
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { cn } from '@/lib/utils'
 import { TradeForm, type TradeFormTrade } from '@/components/trade-form'
 import { CloseTradeDialog } from '@/components/close-trade-dialog'
 import { RollTradeDialog } from '@/components/roll-trade-dialog'
+import { deleteTrade } from '@/actions/trades'
 
 export type DashboardPosition = {
   id: string
@@ -28,14 +46,16 @@ export type DashboardPosition = {
 
 type Props = {
   positions: DashboardPosition[]
+  projProfitTotal: number
   accounts: { id: string; name: string; optionAssignmentFee: number }[]
   setups: { id: string; name: string }[]
 }
 
-export function DashboardOpenPositions({ positions, accounts, setups }: Props) {
+export function DashboardOpenPositions({ positions, projProfitTotal, accounts, setups }: Props) {
   const [editTrade, setEditTrade] = useState<DashboardPosition | null>(null)
   const [closingTrade, setClosingTrade] = useState<DashboardPosition | null>(null)
   const [rollingTrade, setRollingTrade] = useState<DashboardPosition | null>(null)
+  const [deletingTrade, setDeletingTrade] = useState<DashboardPosition | null>(null)
 
   if (positions.length === 0) {
     return <p className="text-xs text-muted-foreground">No open trades</p>
@@ -55,7 +75,7 @@ export function DashboardOpenPositions({ positions, accounts, setups }: Props) {
               <th className="px-3 py-2 text-right font-medium">Proj. Profit</th>
               <th className="px-3 py-2 text-right font-medium">Days Open</th>
               <th className="px-3 py-2 text-left font-medium">Expiration</th>
-              <th className="px-3 py-2 text-right font-medium">Actions</th>
+              <th className="px-3 py-2 text-right font-medium w-10">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y">
@@ -65,53 +85,71 @@ export function DashboardOpenPositions({ positions, accounts, setups }: Props) {
                 ? Math.ceil((new Date(t.expiration).getTime() - Date.now()) / 86_400_000)
                 : null
               return (
-              <tr key={t.id} className="hover:bg-muted/30 transition-colors">
-                <td className="px-3 py-2 font-mono font-medium">{t.ticker}</td>
-                <td className="px-3 py-2 font-mono text-muted-foreground text-[11px]">{t.symbol}</td>
-                <td className="px-3 py-2">
-                  <span className={cn(
-                    'inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide ring-1',
-                    t.side === 'LONG'
-                      ? 'bg-emerald-50 text-emerald-700 ring-emerald-200'
-                      : 'bg-rose-50 text-rose-700 ring-rose-200',
+                <tr key={t.id} className="hover:bg-muted/30 transition-colors">
+                  <td className="px-3 py-2 font-mono font-medium">{t.ticker}</td>
+                  <td className="px-3 py-2 font-mono text-muted-foreground text-[11px]">{t.symbol}</td>
+                  <td className="px-3 py-2">
+                    <span className={cn(
+                      'inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide ring-1',
+                      t.side === 'LONG'
+                        ? 'bg-emerald-50 text-emerald-700 ring-emerald-200'
+                        : 'bg-rose-50 text-rose-700 ring-rose-200',
+                    )}>
+                      {t.side}
+                    </span>
+                  </td>
+                  <td className="px-3 py-2 text-right tabular-nums">{t.quantity}</td>
+                  <td className="px-3 py-2 text-right tabular-nums">${t.entryPrice.toFixed(2)}</td>
+                  <td className={cn(
+                    'px-3 py-2 text-right tabular-nums',
+                    t.projectedProfit != null
+                      ? t.projectedProfit >= 0 ? 'text-emerald-600' : 'text-rose-600'
+                      : 'text-muted-foreground',
                   )}>
-                    {t.side}
-                  </span>
-                </td>
-                <td className="px-3 py-2 text-right tabular-nums">{t.quantity}</td>
-                <td className="px-3 py-2 text-right tabular-nums">${t.entryPrice.toFixed(2)}</td>
-                <td className={cn(
-                  'px-3 py-2 text-right tabular-nums',
-                  t.projectedProfit != null
-                    ? t.projectedProfit >= 0 ? 'text-emerald-600' : 'text-rose-600'
-                    : 'text-muted-foreground',
-                )}>
-                  {t.projectedProfit != null ? `$${t.projectedProfit.toFixed(0)}` : '—'}
-                </td>
-                <td className="px-3 py-2 text-right text-muted-foreground tabular-nums">{daysOpen}d</td>
-                <td className={cn(
-                  'px-3 py-2 tabular-nums',
-                  dte !== null && dte <= 0 ? 'text-rose-600 font-medium' :
-                  dte !== null && dte <= 7 ? 'text-amber-600 font-medium' :
-                  'text-muted-foreground',
-                )}>
-                  {t.expiration ? new Date(t.expiration).toLocaleDateString('en-US', { timeZone: 'UTC', month: 'short', day: 'numeric' }) : '—'}
-                  {dte !== null && dte <= 7 && dte > 0 && <span className="ml-1 text-[10px]">({dte}d)</span>}
-                  {dte !== null && dte <= 0 && <span className="ml-1 text-[10px]">(exp)</span>}
-                </td>
-                <td className="px-3 py-2">
-                  <div className="flex justify-end gap-1">
-                    <Button size="sm" variant="outline" onClick={() => setEditTrade(t)}>Edit</Button>
-                    <Button size="sm" variant="outline" onClick={() => setClosingTrade(t)}>Close</Button>
-                    {t.optionType && (
-                      <Button size="sm" variant="outline" onClick={() => setRollingTrade(t)}>Roll</Button>
-                    )}
-                  </div>
-                </td>
-              </tr>
-            )})}
-
+                    {t.projectedProfit != null ? `$${t.projectedProfit.toFixed(0)}` : '—'}
+                  </td>
+                  <td className="px-3 py-2 text-right text-muted-foreground tabular-nums">{daysOpen}d</td>
+                  <td className={cn(
+                    'px-3 py-2 tabular-nums',
+                    dte !== null && dte <= 0 ? 'text-rose-600 font-medium' :
+                    dte !== null && dte <= 7 ? 'text-amber-600 font-medium' :
+                    'text-muted-foreground',
+                  )}>
+                    {t.expiration ? new Date(t.expiration).toLocaleDateString('en-US', { timeZone: 'UTC', month: 'short', day: 'numeric' }) : '—'}
+                    {dte !== null && dte <= 7 && dte > 0 && <span className="ml-1 text-[10px]">({dte}d)</span>}
+                    {dte !== null && dte <= 0 && <span className="ml-1 text-[10px]">(exp)</span>}
+                  </td>
+                  <td className="px-3 py-2 text-right">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button size="sm" variant="ghost" className="h-6 w-6 p-0 text-xs">···</Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => setEditTrade(t)}>Edit</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => setClosingTrade(t)}>Close</DropdownMenuItem>
+                        {t.optionType && (
+                          <DropdownMenuItem onClick={() => setRollingTrade(t)}>Roll</DropdownMenuItem>
+                        )}
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem variant="destructive" onClick={() => setDeletingTrade(t)}>Delete</DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </td>
+                </tr>
+              )
+            })}
           </tbody>
+          <tfoot className="border-t bg-muted/30">
+            <tr>
+              <td colSpan={5} className="px-3 py-2 text-right text-xs font-medium text-muted-foreground">Total Proj. Profit</td>
+              <td className="px-3 py-2 text-right text-xs font-medium">
+                <span className={projProfitTotal >= 0 ? 'text-emerald-600' : 'text-rose-600'}>
+                  ${projProfitTotal.toFixed(0)}
+                </span>
+              </td>
+              <td colSpan={3}></td>
+            </tr>
+          </tfoot>
         </table>
       </div>
 
@@ -166,6 +204,31 @@ export function DashboardOpenPositions({ positions, accounts, setups }: Props) {
           }}
         />
       )}
+
+      <AlertDialog open={!!deletingTrade} onOpenChange={(o) => { if (!o) setDeletingTrade(null) }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete trade?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {deletingTrade
+                ? `This will permanently delete "${deletingTrade.name}" (${deletingTrade.ticker}). This action cannot be undone.`
+                : ''}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={async () => {
+                if (deletingTrade) await deleteTrade(deletingTrade.id)
+                setDeletingTrade(null)
+              }}
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   )
 }

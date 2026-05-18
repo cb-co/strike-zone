@@ -68,7 +68,11 @@ export function ByTickerTab({ trades }: Props) {
           </div>
           {expanded.has(s.ticker) && (
             <div className="bg-muted/20 px-4 py-2 space-y-1">
-              {s.trades.map((t) => (
+              {[...s.trades].sort((a, b) => {
+                const aDate = a.closeDate ? new Date(a.closeDate).getTime() : 0
+                const bDate = b.closeDate ? new Date(b.closeDate).getTime() : 0
+                return bDate - aDate
+              }).map((t) => (
                 <div key={t.id} className="flex items-center gap-4 text-sm py-1">
                   <span className="text-muted-foreground w-24">{t.closeDate ? new Date(t.closeDate).toLocaleDateString('en-US', { timeZone: 'UTC', month: 'short', day: 'numeric', year: 'numeric' }) : '—'}</span>
                   <span className={`font-medium ${(t.netPnl ?? 0) >= 0 ? 'text-green-600' : 'text-red-600'}`}>

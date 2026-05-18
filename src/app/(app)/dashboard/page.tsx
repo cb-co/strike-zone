@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
 import Link from 'next/link'
 import { DashboardOpenPositions, type DashboardPosition } from '@/components/dashboard-open-positions'
+import { DashboardCalendar } from '@/components/dashboard-calendar'
 import { AddTradeButton } from '@/components/add-trade-button'
 
 const MONTH_LABELS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
@@ -47,7 +48,7 @@ export default async function DashboardPage() {
       accountId: mainAccount.id,
       closeDate: { not: null },
     },
-    select: { netPnl: true, closeDate: true },
+    select: { id: true, netPnl: true, closeDate: true },
   })
 
   const ytdTrades = closedTrades.filter((t) => {
@@ -60,7 +61,7 @@ export default async function DashboardPage() {
     return new Date(t.closeDate).getMonth() === currentMonth
   })
 
-  // Open trades — full data for table + actions + risk
+  // Open trades — all for display + risk
   const [rawOpenTrades, accounts, setups, goal] = await Promise.all([
     prisma.trade.findMany({
       where: { userId: user.id, accountId: mainAccount.id, closeDate: null },
@@ -291,8 +292,23 @@ export default async function DashboardPage() {
         <h2 className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Open Positions</h2>
         <DashboardOpenPositions
           positions={openPositions}
+          projProfitTotal={openPositions.reduce((s, t) => s + (t.projectedProfit ?? 0), 0)}
           accounts={accounts}
           setups={setups}
+        />
+      </div>
+
+      {/* Calendar */}
+      <div className="rounded-lg border p-4">
+        <h2 className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-4">Calendar</h2>
+        <DashboardCalendar
+          trades={closedTrades.map(t => ({
+            id: t.id,
+            closeDate: t.closeDate,
+            netPnl: t.netPnl ? Number(t.netPnl) : null,
+          }))}
+          initialMonth={currentMonth + 1}
+          initialYear={currentYear}
         />
       </div>
     </div>
