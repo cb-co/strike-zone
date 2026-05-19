@@ -22,6 +22,7 @@ export type ImportRecord = {
   netTotal: number
   contractSize: number   // 100 for options, 1 for stocks
   isAssignment?: boolean // stock leg of an option assignment; commission = assignment fee
+  fitIds: string[]       // QFX FITIDs — used to detect re-imports
 }
 
 export type ImportResult = {
@@ -77,32 +78,6 @@ export async function importQfxTrades(
     where: { id: accountId, userId },
   })
   if (!account) throw new Error('Account not found')
-
-  // Guard against double-import: if any TS_IMPORT open trade already exists for
-  // the same account/symbol/date as an open record in this file, reject the whole import.
-  const openRecords = records.filter((r) =>
-    r.action === 'SELLTOOPEN' || r.action === 'BUYTOOPEN' || (r.action === 'BUY' && !r.isAssignment)
-  )
-  if (openRecords.length > 0) {
-    const duplicateCheck = await prisma.trade.findFirst({
-      where: {
-        userId,
-        accountId,
-        source: 'TS_IMPORT',
-        OR: openRecords.map((r) => ({
-          symbol: { in: symbolVariants(r.symbol) },
-          openDate: new Date(r.date),
-        })),
-      },
-    })
-    if (duplicateCheck) {
-      throw new Error(
-        `This file appears to have already been imported — found an existing trade for ` +
-        `${duplicateCheck.symbol} opened on ${duplicateCheck.openDate.toISOString().slice(0, 10)}. ` +
-        `Import cancelled.`
-      )
-    }
-  }
 
   const batchId = randomUUID()
 
@@ -279,6 +254,17 @@ export async function importQfxTrades(
       if (rec.action === 'SELLTOOPEN') side = 'SHORT'
       else side = 'LONG' // BUYTOOPEN or BUY (stock)
 
+      // Skip records whose FITIDs were already stored on any trade for this account
+      if (rec.fitIds.length > 0) {
+        const alreadyImported = await prisma.trade.findFirst({
+          where: { userId, accountId, importFitIds: { hasSome: rec.fitIds } },
+        })
+        if (alreadyImported) {
+          skipped.push(`${rec.symbol} (duplicate)`)
+          continue
+        }
+      }
+
       const existing = await prisma.trade.findFirst({
         where: { userId, accountId, symbol: { in: symbolVariants(rec.symbol) }, closeDate: null, side },
       })
@@ -302,6 +288,7 @@ export async function importQfxTrades(
             entryPrice: newEntry,
             projectedProfit: newProjectedProfit,
             commission: Number(existing.commission) + rec.commission,
+            importFitIds: [...existing.importFitIds, ...rec.fitIds],
           },
         })
       } else {
@@ -321,6 +308,7 @@ export async function importQfxTrades(
               contractSize: 1,
               commission: rec.commission,
               importBatchId: batchId,
+              importFitIds: rec.fitIds,
             },
           })
         } else {
@@ -347,6 +335,7 @@ export async function importQfxTrades(
               projectedProfit,
               commission: rec.commission,
               importBatchId: batchId,
+              importFitIds: rec.fitIds,
             },
           })
         }

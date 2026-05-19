@@ -147,6 +147,7 @@ export function ImportQfxButton({ accounts }: Props) {
         action:       tx.action,
         netTotal:     tx.netTotal,
         contractSize: tx.contractSize,
+        fitIds:       tx.fitIds,
       }))
       const stockRecords: ImportRecord[] = stockMerged.map((tx) => ({
         instrumentType: 'STOCK',
@@ -160,6 +161,7 @@ export function ImportQfxButton({ accounts }: Props) {
         netTotal:       tx.netTotal,
         contractSize:   1,
         isAssignment:   tx.isAssignment,
+        fitIds:         tx.fitIds,
       }))
       const records = [...optionRecords, ...stockRecords]
       const res = await importQfxTrades(accountId, records, dateRange.end)
