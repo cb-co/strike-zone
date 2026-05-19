@@ -161,7 +161,9 @@ model CashActivity {
   currency      String           @default("USD")
   importBatchId String           @db.Uuid         @map("import_batch_id")
   createdAt     DateTime         @default(now())  @map("created_at")
-  account       Account          @relation(fields: [accountId], references: [id])
+  account       Account          @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  @@index([accountId])
+  @@index([importBatchId])
   @@map("cash_activities")
 }
 
