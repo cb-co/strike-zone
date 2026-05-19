@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { formatCurrency } from '@/lib/format'
 
 type ClosedTrade = {
   id: string
@@ -61,7 +62,7 @@ export function ByTickerTab({ trades }: Props) {
             <span className="text-sm text-muted-foreground w-24">{s.count} trades</span>
             <span className="text-sm w-24">{s.count > 0 ? Math.round((s.wins / s.count) * 100) : 0}% win</span>
             <span className={`font-medium w-32 text-right ${s.netPnl >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-              {s.netPnl >= 0 ? '+' : ''}${s.netPnl.toFixed(2)}
+              {s.netPnl > 0 ? '+' : ''}{formatCurrency(s.netPnl)}
             </span>
             <span className="text-sm text-muted-foreground w-20 text-right">{s.avgDays}d avg</span>
             <span className="ml-4 text-muted-foreground">{expanded.has(s.ticker) ? '▲' : '▼'}</span>
@@ -76,7 +77,7 @@ export function ByTickerTab({ trades }: Props) {
                 <div key={t.id} className="flex items-center gap-4 text-sm py-1">
                   <span className="text-muted-foreground w-24">{t.closeDate ? new Date(t.closeDate).toLocaleDateString('en-US', { timeZone: 'UTC', month: 'short', day: 'numeric', year: 'numeric' }) : '—'}</span>
                   <span className={`font-medium ${(t.netPnl ?? 0) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                    {(t.netPnl ?? 0) >= 0 ? '+' : ''}${(t.netPnl ?? 0).toFixed(2)}
+                    {(t.netPnl ?? 0) > 0 ? '+' : ''}{formatCurrency(t.netPnl ?? 0)}
                   </span>
                 </div>
               ))}

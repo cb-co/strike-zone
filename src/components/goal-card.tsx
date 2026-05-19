@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { updateGoal, deleteGoal } from '@/actions/goals'
 import { monthlyBreakdown } from '@/lib/goals'
+import { formatCurrency } from '@/lib/format'
 import Link from 'next/link'
 
 export type GoalCardData = {
@@ -61,7 +62,7 @@ export function GoalCard({ goal }: { goal: GoalCardData }) {
           <div className="flex items-center gap-2">
             <Badge variant="secondary">COMPLETED</Badge>
             <span className={`font-medium text-sm ${actualYTD >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-              ${actualYTD.toFixed(2)} / ${goal.goalAmount.toLocaleString()}
+              {formatCurrency(actualYTD)} / {formatCurrency(goal.goalAmount)}
             </span>
           </div>
         </div>
@@ -78,7 +79,7 @@ export function GoalCard({ goal }: { goal: GoalCardData }) {
           <span className="ml-2 text-muted-foreground">{goal.accountName}</span>
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-sm text-muted-foreground">Goal: <span className="font-medium text-foreground">${goal.goalAmount.toLocaleString()}</span></span>
+          <span className="text-sm text-muted-foreground">Goal: <span className="font-medium text-foreground">{formatCurrency(goal.goalAmount)}</span></span>
           <Dialog open={editOpen} onOpenChange={setEditOpen}>
             <DialogTrigger asChild><Button size="sm" variant="outline">Edit</Button></DialogTrigger>
             <DialogContent aria-describedby={undefined}>
@@ -127,15 +128,15 @@ export function GoalCard({ goal }: { goal: GoalCardData }) {
       <div className="grid grid-cols-3 gap-4 text-sm">
         <div>
           <p className="text-muted-foreground">Actual YTD</p>
-          <p className={`font-semibold text-base ${actualYTD >= 0 ? 'text-green-600' : 'text-red-600'}`}>${actualYTD.toFixed(2)}</p>
+          <p className={`font-semibold text-base ${actualYTD >= 0 ? 'text-green-600' : 'text-red-600'}`}>{formatCurrency(actualYTD)}</p>
         </div>
         <div>
           <p className="text-muted-foreground">Expected YTD</p>
-          <p className="font-semibold text-base">${expectedYTD.toFixed(2)}</p>
+          <p className="font-semibold text-base">{formatCurrency(expectedYTD)}</p>
         </div>
         <div>
           <p className="text-muted-foreground">Gap</p>
-          <p className={`font-semibold text-base ${gap >= 0 ? 'text-green-600' : 'text-red-600'}`}>{gap >= 0 ? '+' : ''}${gap.toFixed(2)}</p>
+          <p className={`font-semibold text-base ${gap >= 0 ? 'text-green-600' : 'text-red-600'}`}>{gap > 0 ? '+' : ''}{formatCurrency(gap)}</p>
         </div>
       </div>
 
@@ -186,7 +187,7 @@ export function GoalCard({ goal }: { goal: GoalCardData }) {
               }}
               labelStyle={{ color: 'var(--muted-foreground)' }}
               itemStyle={{ color: 'var(--popover-foreground)' }}
-              formatter={(value, name) => [`$${Number(value).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, name]}
+              formatter={(value, name) => [formatCurrency(Number(value)), name]}
               labelFormatter={(idx) => MONTHS[idx as number]}
             />
           </BarChart>
@@ -196,7 +197,7 @@ export function GoalCard({ goal }: { goal: GoalCardData }) {
       {/* Footer */}
       <div className="flex items-center justify-between text-sm text-muted-foreground border-t pt-3">
         <div className="flex gap-4">
-          <span>Fixed WD: ${goal.monthlyFixedWd}/mo</span>
+          <span>Fixed WD: {formatCurrency(goal.monthlyFixedWd)}/mo</span>
           <span>Var WD: {(goal.monthlyVariableWdPct * 100).toFixed(0)}%</span>
           <span>Curve: {goal.curveFactor}</span>
         </div>

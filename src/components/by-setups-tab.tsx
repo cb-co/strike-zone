@@ -1,5 +1,7 @@
 'use client'
 
+import { formatCurrency } from '@/lib/format'
+
 type ClosedTrade = {
   id: string
   netPnl: number | null
@@ -40,7 +42,7 @@ export function BySetupsTab({ trades }: Props) {
           <span className="text-sm text-muted-foreground w-24">{s.count} trades</span>
           <span className="text-sm w-24">{s.count > 0 ? Math.round((s.wins / s.count) * 100) : 0}% win</span>
           <span className={`font-medium text-right ${s.netPnl >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-            {s.netPnl >= 0 ? '+' : ''}${s.netPnl.toFixed(2)}
+            {s.netPnl > 0 ? '+' : ''}{formatCurrency(s.netPnl)}
           </span>
         </div>
       ))}

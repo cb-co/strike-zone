@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils'
+import { formatCurrency } from '@/lib/format'
 import { ArrowLeft02Icon, ArrowRight02Icon } from '@hugeicons/core-free-icons'
 import { HugeiconsIcon } from '@hugeicons/react'
 
@@ -29,9 +30,6 @@ function getFirstDayOfMonth(year: number, month: number) {
 const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December']
 const DAY_LABELS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat']
 
-function fmt(n: number) {
-  return Math.abs(n).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })
-}
 
 export function DashboardCalendar({ trades, initialMonth, initialYear }: Props) {
   const [month, setMonth] = useState(initialMonth)
@@ -95,7 +93,7 @@ export function DashboardCalendar({ trades, initialMonth, initialYear }: Props) 
           <span className="font-semibold text-base">{MONTH_NAMES[month - 1]} {year}</span>
           <div className="flex items-center gap-3 text-sm text-muted-foreground">
             <span className={cn('font-medium', monthTotal >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400')}>
-              {monthTotal >= 0 ? '+' : '-'}${fmt(monthTotal)}
+              {monthTotal > 0 ? '+' : ''}{formatCurrency(monthTotal)}
             </span>
             {tradingDays > 0 && <span>{winDays}/{tradingDays} days</span>}
           </div>
@@ -146,7 +144,7 @@ export function DashboardCalendar({ trades, initialMonth, initialYear }: Props) 
                     {data && (
                       <div className="pl-1 flex flex-col">
                         <span className={cn('font-medium text-sm', data.total >= 0 ? 'text-green-700 dark:text-green-400' : 'text-red-700 dark:text-red-400')}>
-                          {data.total >= 0 ? '+' : ''}${Math.abs(data.total).toFixed(0)}
+                          {data.total > 0 ? '+' : ''}{formatCurrency(data.total)}
                         </span>
                         <span className="text-[10px] text-muted-foreground">{data.count} trade{data.count !== 1 ? 's' : ''}</span>
                       </div>
