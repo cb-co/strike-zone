@@ -10,6 +10,9 @@ export default async function AccountsPage() {
   const accounts = await prisma.account.findMany({
     where: { userId: user.id },
     orderBy: { createdAt: 'asc' },
+    include: {
+      cashActivities: { orderBy: { date: 'desc' } },
+    },
   })
 
   const accountsWithBalance = await Promise.all(
@@ -19,6 +22,7 @@ export default async function AccountsPage() {
         _sum: { netPnl: true },
       })
       const netPnl = Number(result._sum.netPnl ?? 0)
+      const cashSum = account.cashActivities.reduce((sum, a) => sum + Number(a.amount), 0)
       return {
         id: account.id,
         userId: account.userId,
@@ -32,7 +36,16 @@ export default async function AccountsPage() {
         commissionPerStock: Number(account.commissionPerStock),
         optionAssignmentFee: Number(account.optionAssignmentFee),
         createdAt: account.createdAt,
-        currentBalance: Number(account.startingBalance) + netPnl,
+        currentBalance: Number(account.startingBalance) + netPnl + cashSum,
+        cashActivities: account.cashActivities.map(a => ({
+          id: a.id,
+          date: a.date.toISOString().slice(0, 10),
+          description: a.description,
+          type: a.type as string,
+          amount: Number(a.amount),
+          currency: a.currency,
+          importBatchId: a.importBatchId,
+        })),
       }
     })
   )
