@@ -28,6 +28,16 @@ enum TradeSource {
   TS_IMPORT
 }
 
+enum CashActivityType {
+  MARGIN_INTEREST
+  INTEREST
+  DIVIDEND
+  TAX
+  DEPOSIT
+  WITHDRAWAL
+  OTHER
+}
+
 model Account {
   id                   String    @id @default(uuid()) @db.Uuid
   userId               String    @db.Uuid @map("user_id")
@@ -44,6 +54,7 @@ model Account {
   trades               Trade[]
   goals                Goal[]
   monthlySnapshots     MonthlySnapshot[]
+  cashActivities       CashActivity[]
   @@map("accounts")
 }
 
@@ -137,6 +148,21 @@ model MonthlySnapshot {
   createdAt       DateTime @default(now()) @map("created_at")
   account         Account  @relation(fields: [accountId], references: [id])
   @@map("monthly_snapshots")
+}
+
+model CashActivity {
+  id            String           @id
+  userId        String           @db.Uuid         @map("user_id")
+  accountId     String           @db.Uuid         @map("account_id")
+  date          DateTime         @db.Date
+  description   String
+  type          CashActivityType
+  amount        Decimal          @db.Decimal(18, 2)
+  currency      String           @default("USD")
+  importBatchId String           @db.Uuid         @map("import_batch_id")
+  createdAt     DateTime         @default(now())  @map("created_at")
+  account       Account          @relation(fields: [accountId], references: [id])
+  @@map("cash_activities")
 }
 
 model TradestationToken {
