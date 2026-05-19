@@ -1,0 +1,26 @@
+﻿# -----------------------------------------------,,,
+TradeStation Historical Activity Report,,,
+Report Type: Cash Activity,,,
+Dates: 1/1/2026 - 5/18/2026,,,
+Account: 11927184,,,
+Type: Margin,,,
+Alias: N/A,,,
+# -----------------------------------------------,,,
+,,,
+
+"Date","Description","Amount","Currency"
+"01/30/2026","11.75000%01/01-01/30    $3567 ","-$34.44","USD"
+"02/03/2026","FPL Revenue                   ","$0.35","USD"
+"02/03/2026","FPL INTEREST CR               ","$0.35","USD"
+"02/03/2026","NRA WITHHOLDING               ","$0.00","USD"
+"03/03/2026","FPL Revenue                   ","$0.21","USD"
+"03/03/2026","FPL INTEREST CR               ","$0.21","USD"
+"03/03/2026","NRA WITHHOLDING               ","$0.00","USD"
+"03/31/2026","ULTRA SEMICONDU            500","$29.37","USD"
+"03/31/2026","NRA WITHHOLD: DIVIDEND        ","-$8.81","USD"
+"04/02/2026","FPL Revenue                   ","$1.10","USD"
+"04/02/2026","FPL INTEREST CR               ","$1.10","USD"
+"04/02/2026","NRA WITHHOLDING               ","$0.00","USD"
+"05/04/2026","FPL Revenue                   ","$2.05","USD"
+"05/04/2026","FPL INTEREST CR               ","$2.05","USD"
+"05/04/2026","NRA WITHHOLDING               ","$0.00","USD"
