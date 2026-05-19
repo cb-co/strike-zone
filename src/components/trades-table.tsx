@@ -169,9 +169,7 @@ export function TradesTable({
   const searchParams = useSearchParams();
   const [isPending, startTransition] = useTransition();
 
-  const [sorting, setSorting] = useState<SortingState>(
-    [],
-  );
+  const [sorting, setSorting] = useState<SortingState>([]);
   const [editTrade, setEditTrade] = useState<TableTrade | null>(null);
   const [closingTrade, setClosingTrade] = useState<TableTrade | null>(null);
   const [rollingTrade, setRollingTrade] = useState<TableTrade | null>(null);
@@ -472,36 +470,31 @@ export function TradesTable({
               )}
             </Button>
           </PopoverTrigger>
-          <PopoverContent className="w-64 p-3 space-y-3" align="start">
-            <div className="space-y-1.5">
-              <p className="text-xs font-medium text-muted-foreground">From</p>
-              <DatePicker
-                name="dateFrom"
-                value={dateFrom || undefined}
-                onValueChange={(v) => navigate({ dateFrom: v, page: 1 })}
-                placeholder="Start date"
-                className="h-7 text-xs"
-              />
+          <PopoverContent className="w-72 p-2" align="start">
+            <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-1">
+                <p className="text-xs font-medium text-muted-foreground">
+                  From
+                </p>
+                <DatePicker
+                  name="dateFrom"
+                  value={dateFrom || undefined}
+                  onValueChange={(v) => navigate({ dateFrom: v, page: 1 })}
+                  placeholder="Start"
+                  className="h-7 text-xs"
+                />
+              </div>
+              <div className="space-y-1">
+                <p className="text-xs font-medium text-muted-foreground">To</p>
+                <DatePicker
+                  name="dateTo"
+                  value={dateTo || undefined}
+                  onValueChange={(v) => navigate({ dateTo: v, page: 1 })}
+                  placeholder="End"
+                  className="h-7 text-xs"
+                />
+              </div>
             </div>
-            <div className="space-y-1.5">
-              <p className="text-xs font-medium text-muted-foreground">To</p>
-              <DatePicker
-                name="dateTo"
-                value={dateTo || undefined}
-                onValueChange={(v) => navigate({ dateTo: v, page: 1 })}
-                placeholder="End date"
-                className="h-7 text-xs"
-              />
-            </div>
-            {(dateFrom || dateTo) && (
-              <Button
-                variant="ghost"
-                className="w-full text-xs"
-                onClick={() => navigate({ dateFrom: "", dateTo: "", page: 1 })}
-              >
-                Clear
-              </Button>
-            )}
           </PopoverContent>
         </Popover>
 
@@ -677,8 +670,8 @@ export function TradesTable({
               ))}
             </SelectContent>
           </Select>
+          {`|`}
           <p className="text-xs text-muted-foreground">
-            {`| `}
             {total.toLocaleString()} total
           </p>
           {totalPages > 1 && (

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import { ArrowLeft02Icon, ArrowRight02Icon } from '@hugeicons/core-free-icons'
 import { HugeiconsIcon } from '@hugeicons/react'
@@ -35,6 +36,13 @@ function fmt(n: number) {
 export function DashboardCalendar({ trades, initialMonth, initialYear }: Props) {
   const [month, setMonth] = useState(initialMonth)
   const [year, setYear] = useState(initialYear)
+  const router = useRouter()
+
+  function dayDate(day: number) {
+    const mm = String(month).padStart(2, '0')
+    const dd = String(day).padStart(2, '0')
+    return `${year}-${mm}-${dd}`
+  }
 
   const today = new Date()
   const todayDay = today.getDate()
@@ -113,10 +121,14 @@ export function DashboardCalendar({ trades, initialMonth, initialYear }: Props) 
                 return (
                   <div
                     key={di}
+                    onClick={data ? () => {
+                      const d = dayDate(day)
+                      router.push(`/trades?tab=closed&dateFrom=${d}&dateTo=${d}`)
+                    } : undefined}
                     className={cn(
                       'h-24 p-2 flex flex-col gap-1 relative',
                       data
-                        ? data.total >= 0 ? 'bg-green-50 dark:bg-green-950/20' : 'bg-red-50 dark:bg-red-950/20'
+                        ? data.total >= 0 ? 'bg-green-50 dark:bg-green-950/20 cursor-pointer hover:brightness-95' : 'bg-red-50 dark:bg-red-950/20 cursor-pointer hover:brightness-95'
                         : 'bg-background'
                     )}
                   >
