@@ -87,7 +87,7 @@ export type TableTrade = {
 
 type Props = {
   trades: TableTrade[];
-  variant: "closed" | "open" | "losses";
+  variant: "closed" | "open";
   accounts: { id: string; name: string; optionAssignmentFee: number }[];
   setups: { id: string; name: string }[];
   total: number;
@@ -170,7 +170,7 @@ export function TradesTable({
   const [isPending, startTransition] = useTransition();
 
   const [sorting, setSorting] = useState<SortingState>(
-    variant === "losses" ? [{ id: "netPnl", desc: false }] : [],
+    [],
   );
   const [editTrade, setEditTrade] = useState<TableTrade | null>(null);
   const [closingTrade, setClosingTrade] = useState<TableTrade | null>(null);

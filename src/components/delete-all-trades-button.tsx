@@ -15,13 +15,13 @@ import {
 } from '@/components/ui/alert-dialog'
 import { deleteAllTrades } from '@/actions/trades'
 
-export function DeleteAllTradesButton() {
+export function DeleteAllTradesButton({ accountId, accountName }: { accountId: string; accountName: string }) {
   const [open, setOpen] = useState(false)
   const [isPending, startTransition] = useTransition()
 
   function handleDelete() {
     startTransition(async () => {
-      await deleteAllTrades()
+      await deleteAllTrades(accountId)
       setOpen(false)
     })
   }
@@ -29,13 +29,13 @@ export function DeleteAllTradesButton() {
   return (
     <AlertDialog open={open} onOpenChange={setOpen}>
       <AlertDialogTrigger asChild>
-        <Button variant="destructive">Delete All</Button>
+        <Button size="sm" variant="destructive">Delete Trades</Button>
       </AlertDialogTrigger>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Delete all trades?</AlertDialogTitle>
+          <AlertDialogTitle>Delete all trades for {accountName}?</AlertDialogTitle>
           <AlertDialogDescription>
-            This will permanently delete every trade in your account. This action cannot be undone.
+            This will permanently delete every trade in <strong>{accountName}</strong>. This action cannot be undone.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>

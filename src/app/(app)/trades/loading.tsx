@@ -6,7 +6,6 @@ export default function TradesLoading() {
       <div className="flex items-center justify-between">
         <Skeleton className="h-7 w-24" />
         <div className="flex items-center gap-2">
-          <Skeleton className="h-7 w-24" />
           <Skeleton className="h-7 w-28" />
           <Skeleton className="h-7 w-24" />
         </div>

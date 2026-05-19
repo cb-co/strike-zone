@@ -7,7 +7,6 @@ import { ByTickerTab } from '@/components/by-ticker-tab'
 import { BySetupsTab } from '@/components/by-setups-tab'
 import { AddTradeButton } from '@/components/add-trade-button'
 import { ImportQfxButton } from '@/components/import-qfx-button'
-import { DeleteAllTradesButton } from '@/components/delete-all-trades-button'
 import { TradesTabsClient } from '@/components/trades-tabs-client'
 import { calcOpenRisk } from '@/lib/trades'
 
@@ -80,10 +79,9 @@ export default async function TradesPage(props: Props) {
   ])
 
   // Tab counts (always needed for the nav)
-  const [openCount, closedCount, lossesCount] = await Promise.all([
+  const [openCount, closedCount] = await Promise.all([
     prisma.trade.count({ where: { userId: user.id, closeDate: null } }),
     prisma.trade.count({ where: { userId: user.id, closeDate: { not: null } } }),
-    prisma.trade.count({ where: { userId: user.id, closeDate: { not: null }, netPnl: { lt: 0 } } }),
   ])
 
   const searchOR = q
@@ -225,48 +223,6 @@ export default async function TradesPage(props: Props) {
         />
       </Suspense>
     )
-  } else if (tab === 'losses') {
-    const lossBase: Record<string, unknown> = { userId: user.id, closeDate: { not: null }, netPnl: { lt: 0 } }
-    if (selectedTickers.length > 0) lossBase.ticker = { in: selectedTickers }
-    const dateFilter = buildDateFilter()
-    if (dateFilter) lossBase.closeDate = { ...lossBase.closeDate as object, ...dateFilter }
-    const lossWhere = searchOR ? { ...lossBase, OR: searchOR } : lossBase
-
-    const [rawTrades, total, agg, tickerRows] = await Promise.all([
-      prisma.trade.findMany({
-        where: lossWhere,
-        include: { tradeSetups: { include: { setup: true } } },
-        orderBy: { netPnl: 'asc' },
-        skip: (page - 1) * perPage,
-        take: perPage,
-      }),
-      prisma.trade.count({ where: lossWhere }),
-      prisma.trade.aggregate({ _sum: { netPnl: true }, where: lossWhere }),
-      prisma.trade.findMany({
-        where: { userId: user.id, closeDate: { not: null }, netPnl: { lt: 0 } },
-        select: { ticker: true },
-        distinct: ['ticker'],
-        orderBy: { ticker: 'asc' },
-      }),
-    ])
-
-    availableTickers = tickerRows.map(r => r.ticker)
-
-    content = (
-      <Suspense>
-        <TradesTable
-          trades={normalizeTradeList(rawTrades)}
-          variant="losses"
-          accounts={accounts}
-          setups={setups}
-          total={total}
-          page={page}
-          perPage={perPage}
-          netPnlTotal={Number(agg._sum.netPnl ?? 0)}
-          availableTickers={availableTickers}
-        />
-      </Suspense>
-    )
   } else {
     // calendar, by-ticker, by-setups — fetch all closed trades for aggregation
     const rawAllClosed = await prisma.trade.findMany({
@@ -292,7 +248,6 @@ export default async function TradesPage(props: Props) {
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold">Trades</h1>
         <div className="flex items-center gap-2">
-          <DeleteAllTradesButton />
           <ImportQfxButton accounts={accounts} />
           <AddTradeButton accounts={accounts} setups={setups} />
         </div>
@@ -300,12 +255,12 @@ export default async function TradesPage(props: Props) {
 
       <Suspense fallback={
         <div className="inline-flex h-9 items-center justify-center rounded-lg bg-muted p-1 text-muted-foreground gap-1">
-          {Array.from({ length: 6 }).map((_, i) => (
+          {Array.from({ length: 5 }).map((_, i) => (
             <div key={i} className="h-7 w-20 rounded-md bg-muted-foreground/10 animate-pulse" />
           ))}
         </div>
       }>
-        <TradesTabsClient tab={tab} counts={{ open: openCount, closed: closedCount, losses: lossesCount }}>
+        <TradesTabsClient tab={tab} counts={{ open: openCount, closed: closedCount }}>
           {content}
         </TradesTabsClient>
       </Suspense>

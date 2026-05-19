@@ -7,7 +7,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 
 type Props = {
   tab: string
-  counts: { open: number; closed: number; losses: number }
+  counts: { open: number; closed: number }
   children: React.ReactNode
 }
 
@@ -43,7 +43,6 @@ export function TradesTabsClient({ tab, counts, children }: Props) {
     { value: 'calendar', label: 'Calendar' },
     { value: 'by-ticker', label: 'By Ticker' },
     { value: 'by-setups', label: 'Setups' },
-    { value: 'losses', label: `Losses (${counts.losses})` },
   ]
 
   function switchTab(value: string) {

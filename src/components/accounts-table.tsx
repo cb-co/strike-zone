@@ -7,6 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { createAccount, updateAccount, deleteAccount, setMainAccount } from '@/actions/accounts'
+import { DeleteAllTradesButton } from '@/components/delete-all-trades-button'
 type Account = {
   id: string
   name: string
@@ -140,6 +141,7 @@ export function AccountsTable({ accounts }: { accounts: Account[] }) {
                         <AccountForm account={account} onDone={() => setEditingId(null)} />
                       </DialogContent>
                     </Dialog>
+                    <DeleteAllTradesButton accountId={account.id} accountName={account.name} />
                     <Button size="sm" variant="destructive" onClick={() => deleteAccount(account.id)}>
                       Delete
                     </Button>

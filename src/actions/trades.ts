@@ -318,8 +318,8 @@ export async function removeSetupFromTrade(tradeId: string, setupId: string) {
   revalidateTrades()
 }
 
-export async function deleteAllTrades() {
+export async function deleteAllTrades(accountId: string) {
   const userId = await getUserId()
-  await prisma.trade.deleteMany({ where: { userId } })
+  await prisma.trade.deleteMany({ where: { userId, accountId } })
   revalidateTrades()
 }
