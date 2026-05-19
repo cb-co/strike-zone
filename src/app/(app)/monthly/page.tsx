@@ -55,15 +55,29 @@ export default async function MonthlyPage(props: { searchParams?: Promise<Record
 
   const breakdown = monthlyBreakdown(g)
 
-  // Fetch actual trades for this goal's account and year
-  const trades = await prisma.trade.findMany({
-    where: {
-      userId: user.id,
-      accountId: goal.accountId,
-      closeDate: { not: null },
-    },
-    select: { closeDate: true, netPnl: true },
-  })
+  // Fetch actual trades and cash activities for this goal's account and year
+  const [trades, cashActivities] = await Promise.all([
+    prisma.trade.findMany({
+      where: {
+        userId: user.id,
+        accountId: goal.accountId,
+        closeDate: { not: null },
+      },
+      select: { closeDate: true, netPnl: true },
+    }),
+    prisma.cashActivity.findMany({
+      where: {
+        userId: user.id,
+        accountId: goal.accountId,
+        type: { not: 'DEPOSIT' },
+        date: {
+          gte: new Date(`${goal.year}-01-01`),
+          lt: new Date(`${goal.year + 1}-01-01`),
+        },
+      },
+      select: { date: true, amount: true },
+    }),
+  ])
 
   const actualMonthlyPnl = Array(12).fill(0)
   for (const trade of trades) {
@@ -71,6 +85,9 @@ export default async function MonthlyPage(props: { searchParams?: Promise<Record
     const d = new Date(trade.closeDate)
     if (d.getUTCFullYear() !== goal.year) continue
     actualMonthlyPnl[d.getUTCMonth()] += Number(trade.netPnl)
+  }
+  for (const ca of cashActivities) {
+    actualMonthlyPnl[new Date(ca.date).getUTCMonth()] += Number(ca.amount)
   }
 
   const today = new Date()
@@ -84,6 +101,17 @@ export default async function MonthlyPage(props: { searchParams?: Promise<Record
   // Running cumulative totals
   let cumActual = 0
   let cumExpected = 0
+
+  // Totals row — sum non-cumulative columns; skip future months for actuals
+  const totalExpectedPnl = breakdown.reduce((s, b) => s + b.expectedPnl, 0)
+  const totalFixedWd = g.monthlyFixedWd * 12
+  const totalVarWd = breakdown.reduce((s, b) => s + b.expectedVarWd, 0)
+  const totalExpectedTotal = breakdown.reduce((s, b) => s + b.expectedTotal, 0)
+  const totalActual = actualYTD
+  const totalVsExpected = breakdown.reduce((s, b, i) => {
+    if (isCurrentYear && i > currentMonth) return s
+    return s + (actualMonthlyPnl[i] - b.expectedTotal)
+  }, 0)
 
   const MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
 
@@ -176,6 +204,23 @@ export default async function MonthlyPage(props: { searchParams?: Promise<Record
               )
             })}
           </tbody>
+          <tfoot className="border-t bg-muted/50">
+            <tr className="font-semibold">
+              <td className="px-4 py-2.5 text-muted-foreground">Total</td>
+              <td className="px-4 py-2.5 text-right">{formatCurrency(totalExpectedPnl)}</td>
+              <td className="px-4 py-2.5 text-right">{formatCurrency(totalFixedWd)}</td>
+              <td className="px-4 py-2.5 text-right">{formatCurrency(totalVarWd)}</td>
+              <td className="px-4 py-2.5 text-right">{formatCurrency(totalExpectedTotal)}</td>
+              <td className={cn('px-4 py-2.5 text-right', totalActual >= 0 ? 'text-green-600' : 'text-red-600')}>
+                {formatCurrency(totalActual)}
+              </td>
+              <td className={cn('px-4 py-2.5 text-right', totalVsExpected >= 0 ? 'text-green-600' : 'text-red-600')}>
+                {totalVsExpected >= 0 ? '+' : ''}{formatCurrency(totalVsExpected)}
+              </td>
+              <td className="px-4 py-2.5 text-right text-muted-foreground">—</td>
+              <td className="px-4 py-2.5 text-right text-muted-foreground">—</td>
+            </tr>
+          </tfoot>
         </table>
       </div>
     </div>

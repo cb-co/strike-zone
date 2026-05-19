@@ -20,18 +20,31 @@ export default async function GoalsPage() {
     }),
   ])
 
-  // For each goal, compute actual monthly P&L from trades
+  // For each goal, compute actual monthly P&L from trades + cash activities
   const goalsWithPnl: GoalCardData[] = await Promise.all(
     goals.map(async (goal) => {
-      const trades = await prisma.trade.findMany({
-        where: {
-          userId: user.id,
-          accountId: goal.accountId,
-          closeDate: { not: null },
-          // Filter to the goal's year
-        },
-        select: { closeDate: true, netPnl: true },
-      })
+      const [trades, cashActivities] = await Promise.all([
+        prisma.trade.findMany({
+          where: {
+            userId: user.id,
+            accountId: goal.accountId,
+            closeDate: { not: null },
+          },
+          select: { closeDate: true, netPnl: true },
+        }),
+        prisma.cashActivity.findMany({
+          where: {
+            userId: user.id,
+            accountId: goal.accountId,
+            type: { not: 'DEPOSIT' },
+            date: {
+              gte: new Date(`${goal.year}-01-01`),
+              lt: new Date(`${goal.year + 1}-01-01`),
+            },
+          },
+          select: { date: true, amount: true },
+        }),
+      ])
 
       const actualMonthlyPnl = Array(12).fill(0)
       for (const trade of trades) {
@@ -39,6 +52,9 @@ export default async function GoalsPage() {
         const d = new Date(trade.closeDate)
         if (d.getFullYear() !== goal.year) continue
         actualMonthlyPnl[d.getMonth()] += Number(trade.netPnl)
+      }
+      for (const ca of cashActivities) {
+        actualMonthlyPnl[new Date(ca.date).getUTCMonth()] += Number(ca.amount)
       }
 
       return {

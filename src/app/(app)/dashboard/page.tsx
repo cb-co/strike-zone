@@ -85,7 +85,7 @@ export default async function DashboardPage() {
   });
 
   // Open trades — all for display + risk
-  const [rawOpenTrades, accounts, setups, goal] = await Promise.all([
+  const [rawOpenTrades, accounts, setups, goal, cashActivities] = await Promise.all([
     prisma.trade.findMany({
       where: { userId: user.id, accountId: mainAccount.id, closeDate: null },
       select: {
@@ -126,6 +126,18 @@ export default async function DashboardPage() {
     prisma.goal.findFirst({
       where: { userId: user.id, accountId: mainAccount.id, year: currentYear },
     }),
+    prisma.cashActivity.findMany({
+      where: {
+        userId: user.id,
+        accountId: mainAccount.id,
+        type: { not: 'DEPOSIT' },
+        date: {
+          gte: new Date(`${currentYear}-01-01`),
+          lt: new Date(`${currentYear + 1}-01-01`),
+        },
+      },
+      select: { date: true, amount: true },
+    }),
   ]);
 
   const openPositions: DashboardPosition[] = rawOpenTrades.map((t) => ({
@@ -147,12 +159,18 @@ export default async function DashboardPage() {
     tradeSetups: t.tradeSetups,
   }));
 
+  // Cash activity totals — distributed by month
+  const cashYtdPnl = cashActivities.reduce((s, ca) => s + Number(ca.amount), 0);
+  const cashMonthPnl = cashActivities
+    .filter((ca) => new Date(ca.date).getUTCMonth() === currentMonth)
+    .reduce((s, ca) => s + Number(ca.amount), 0);
+
   // KPI calculations
   const monthlyPnl = currentMonthTrades.reduce(
     (s, t) => s + Number(t.netPnl ?? 0),
     0,
-  );
-  const ytdPnl = ytdTrades.reduce((s, t) => s + Number(t.netPnl ?? 0), 0);
+  ) + cashMonthPnl;
+  const ytdPnl = ytdTrades.reduce((s, t) => s + Number(t.netPnl ?? 0), 0) + cashYtdPnl;
   const winningTrades = ytdTrades.filter(
     (t) => Number(t.netPnl ?? 0) > 0,
   ).length;
@@ -171,13 +189,16 @@ export default async function DashboardPage() {
   const startingBalance = Number(mainAccount.startingBalance);
   const pctReturn = startingBalance > 0 ? (ytdPnl / startingBalance) * 100 : 0;
 
-  // Equity chart data — monthly
+  // Equity chart data — monthly (trades + cash activities)
   const actualMonthlyPnl = Array(12).fill(0);
   for (const trade of ytdTrades) {
     if (!trade.closeDate) continue;
     actualMonthlyPnl[new Date(trade.closeDate).getUTCMonth()] += Number(
       trade.netPnl ?? 0,
     );
+  }
+  for (const ca of cashActivities) {
+    actualMonthlyPnl[new Date(ca.date).getUTCMonth()] += Number(ca.amount);
   }
 
   let cumActual = startingBalance;

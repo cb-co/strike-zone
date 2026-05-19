@@ -143,18 +143,18 @@ export function GoalCard({ goal }: { goal: GoalCardData }) {
       {/* Progress bars */}
       <div className="space-y-1.5">
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
-          <span>Actual</span>
+          <span className="w-16 shrink-0">Actual</span>
           <div className="flex-1 bg-muted rounded-full h-2">
             <div className="bg-green-500 h-2 rounded-full transition-all" style={{ width: `${actualPct * 100}%` }} />
           </div>
-          <span>{(actualPct * 100).toFixed(1)}%</span>
+          <span className="w-10 text-right tabular-nums">{(actualPct * 100).toFixed(1)}%</span>
         </div>
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
-          <span>Expected</span>
+          <span className="w-16 shrink-0">Expected</span>
           <div className="flex-1 bg-muted rounded-full h-2">
             <div className="bg-blue-400 h-2 rounded-full transition-all" style={{ width: `${expectedPct * 100}%` }} />
           </div>
-          <span>{(expectedPct * 100).toFixed(1)}%</span>
+          <span className="w-10 text-right tabular-nums">{(expectedPct * 100).toFixed(1)}%</span>
         </div>
       </div>
 
