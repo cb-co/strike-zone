@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { updateGoal, deleteGoal } from '@/actions/goals'
-import { monthlyBreakdown } from '@/lib/goals'
+import { monthlyBreakdown, expectedCumPnL } from '@/lib/goals'
 import { formatCurrency } from '@/lib/format'
 import Link from 'next/link'
 
@@ -36,8 +36,14 @@ export function GoalCard({ goal }: { goal: GoalCardData }) {
     monthlyVariableWdPct: goal.monthlyVariableWdPct,
   })
 
-  const expectedYTD = breakdown.slice(0, new Date().getMonth() + 1).reduce((s, b) => s + b.expectedPnl, 0)
-  const actualYTD = goal.actualMonthlyPnl.reduce((s, v) => s + v, 0)
+  const goalParams = {
+    goalAmount: goal.goalAmount,
+    curveFactor: goal.curveFactor,
+    monthlyFixedWd: goal.monthlyFixedWd,
+    monthlyVariableWdPct: goal.monthlyVariableWdPct,
+  }
+  const expectedYTD = expectedCumPnL(goalParams, new Date())
+  const actualYTD = goal.actualMonthlyPnl.slice(0, new Date().getMonth() + 1).reduce((s, v) => s + v, 0)
   const gap = actualYTD - expectedYTD
 
   const actualPct = Math.min(1, actualYTD / goal.goalAmount)
