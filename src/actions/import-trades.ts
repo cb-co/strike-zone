@@ -111,17 +111,37 @@ export async function importQfxTrades(
     if (rec.isAssignment) {
       // BUY stock → short PUT was assigned; SELL stock → short CALL was assigned
       const assignedOptionType = rec.action === 'BUY' ? 'PUT' : 'CALL'
-      const openOption = await prisma.trade.findFirst({
+      const assignDate = new Date(rec.date)
+      const earlyWindowEnd = new Date(assignDate)
+      earlyWindowEnd.setDate(earlyWindowEnd.getDate() + 7)
+
+      // Try exact expiration first; fall back to earliest-expiring option within
+      // 7 days for early assignments (assigned before the official expiration date)
+      let openOption = await prisma.trade.findFirst({
         where: {
           userId, accountId,
           ticker: rec.ticker,
           side: 'SHORT',
           optionType: assignedOptionType,
           closeDate: null,
-          expiration: new Date(rec.date),
+          expiration: assignDate,
           strike: { gte: rec.unitPrice - 0.01, lte: rec.unitPrice + 0.01 },
         },
       })
+      if (!openOption) {
+        openOption = await prisma.trade.findFirst({
+          where: {
+            userId, accountId,
+            ticker: rec.ticker,
+            side: 'SHORT',
+            optionType: assignedOptionType,
+            closeDate: null,
+            expiration: { gt: assignDate, lte: earlyWindowEnd },
+            strike: { gte: rec.unitPrice - 0.01, lte: rec.unitPrice + 0.01 },
+          },
+          orderBy: { expiration: 'asc' },
+        })
+      }
 
       if (openOption) {
         const openCommission = Number(openOption.commission)
