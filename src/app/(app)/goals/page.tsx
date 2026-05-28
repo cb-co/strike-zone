@@ -50,8 +50,8 @@ export default async function GoalsPage() {
       for (const trade of trades) {
         if (!trade.closeDate || !trade.netPnl) continue
         const d = new Date(trade.closeDate)
-        if (d.getFullYear() !== goal.year) continue
-        actualMonthlyPnl[d.getMonth()] += Number(trade.netPnl)
+        if (d.getUTCFullYear() !== goal.year) continue
+        actualMonthlyPnl[d.getUTCMonth()] += Number(trade.netPnl)
       }
       for (const ca of cashActivities) {
         actualMonthlyPnl[new Date(ca.date).getUTCMonth()] += Number(ca.amount)

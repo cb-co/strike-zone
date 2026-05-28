@@ -29,6 +29,15 @@ function getFirstDayOfMonth(year: number, month: number) {
 const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December']
 const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 
+function getISOWeek(year: number, month: number, firstDayOfMonth: number, rowIndex: number): number {
+  const mondayDay = 1 - firstDayOfMonth + rowIndex * 7 + 1
+  const d = new Date(Date.UTC(year, month - 1, mondayDay))
+  const dayNum = d.getUTCDay() || 7
+  d.setUTCDate(d.getUTCDate() + 4 - dayNum)
+  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1))
+  return Math.ceil((((d.getTime() - yearStart.getTime()) / 86400000) + 1) / 7)
+}
+
 
 export function CalendarTab({ trades, month, year }: Props) {
   const router = useRouter()
@@ -118,7 +127,8 @@ export function CalendarTab({ trades, month, year }: Props) {
       {/* Calendar grid */}
       <div className="rounded-lg border overflow-hidden">
         {/* Day headers */}
-        <div className="grid grid-cols-7 border-b bg-muted/30">
+        <div className="grid border-b bg-muted/30" style={{ gridTemplateColumns: '2rem repeat(7, minmax(0, 1fr))' }}>
+          <div className="py-2 text-center text-[10px] font-medium text-muted-foreground/50 uppercase">Wk</div>
           {DAY_LABELS.map((d) => (
             <div key={d} className="py-2 text-center text-xs font-medium text-muted-foreground tracking-wide uppercase">
               {d}
@@ -128,62 +138,68 @@ export function CalendarTab({ trades, month, year }: Props) {
 
         {/* Weeks */}
         <div className="divide-y">
-          {weeks.map((week, wi) => (
-            <div key={wi} className="grid grid-cols-7 divide-x">
-              {week.map((day, di) => {
-                if (!day) {
-                  return <div key={di} className="h-28 bg-muted/10" />
-                }
+          {weeks.map((week, wi) => {
+            const weekNum = getISOWeek(year, month, firstDay, wi)
+            return (
+              <div key={wi} className="grid divide-x" style={{ gridTemplateColumns: '2rem repeat(7, minmax(0, 1fr))' }}>
+                <div className="flex items-start justify-center pt-2 text-[10px] font-medium text-muted-foreground/50 bg-muted/10">
+                  {weekNum}
+                </div>
+                {week.map((day, di) => {
+                  if (!day) {
+                    return <div key={di} className="h-28 bg-muted/10" />
+                  }
 
-                const data = byDay.get(day)
-                const isToday = day === todayDay && month === todayMonth && year === todayYear
+                  const data = byDay.get(day)
+                  const isToday = day === todayDay && month === todayMonth && year === todayYear
 
-                return (
-                  <div
-                    key={di}
-                    className={cn(
-                      'h-28 p-2 flex flex-col gap-1 relative',
-                      data
-                        ? data.total >= 0
-                          ? 'bg-green-50 dark:bg-green-950/20'
-                          : 'bg-red-50 dark:bg-red-950/20'
-                        : 'bg-background'
-                    )}
-                  >
-                    {data && (
-                      <div className={cn('absolute left-0 inset-y-0 w-[3px]', data.total >= 0 ? 'bg-green-500' : 'bg-red-500')} />
-                    )}
+                  return (
+                    <div
+                      key={di}
+                      className={cn(
+                        'h-28 p-2 flex flex-col gap-1 relative',
+                        data
+                          ? data.total >= 0
+                            ? 'bg-green-50 dark:bg-green-950/20'
+                            : 'bg-red-50 dark:bg-red-950/20'
+                          : 'bg-background'
+                      )}
+                    >
+                      {data && (
+                        <div className={cn('absolute left-0 inset-y-0 w-[3px]', data.total >= 0 ? 'bg-green-500' : 'bg-red-500')} />
+                      )}
 
-                    {/* Day number */}
-                    <div className="flex justify-end">
-                      <span
-                        className={cn(
-                          'flex items-center justify-center w-6 h-6 rounded-full text-xs font-medium',
-                          isToday
-                            ? 'bg-primary text-primary-foreground'
-                            : 'text-muted-foreground'
-                        )}
-                      >
-                        {day}
-                      </span>
-                    </div>
-
-                    {/* P&L — old style: stacked top-left */}
-                    {data && (
-                      <div className="pl-1 flex flex-col">
-                        <span className={cn('font-medium text-sm', data.total >= 0 ? 'text-green-700 dark:text-green-400' : 'text-red-700 dark:text-red-400')}>
-                          {data.total > 0 ? '+' : ''}{formatCurrency(data.total)}
-                        </span>
-                        <span className="text-[10px] text-muted-foreground">
-                          {data.count} trade{data.count !== 1 ? 's' : ''}
+                      {/* Day number */}
+                      <div className="flex justify-end">
+                        <span
+                          className={cn(
+                            'flex items-center justify-center w-6 h-6 rounded-full text-xs font-medium',
+                            isToday
+                              ? 'bg-primary text-primary-foreground'
+                              : 'text-muted-foreground'
+                          )}
+                        >
+                          {day}
                         </span>
                       </div>
-                    )}
-                  </div>
-                )
-              })}
-            </div>
-          ))}
+
+                      {/* P&L */}
+                      {data && (
+                        <div className="pl-1 flex flex-col">
+                          <span className={cn('font-medium text-sm', data.total >= 0 ? 'text-green-700 dark:text-green-400' : 'text-red-700 dark:text-red-400')}>
+                            {data.total > 0 ? '+' : ''}{formatCurrency(data.total)}
+                          </span>
+                          <span className="text-[10px] text-muted-foreground">
+                            {data.count} trade{data.count !== 1 ? 's' : ''}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            )
+          })}
         </div>
       </div>
     </div>

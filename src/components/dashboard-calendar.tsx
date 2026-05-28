@@ -30,6 +30,18 @@ function getFirstDayOfMonth(year: number, month: number) {
 const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December']
 const DAY_LABELS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat']
 
+// ISO week number using the Monday of this calendar row (row 0 = first week of the grid).
+// Using Sunday (the first cell) would give the wrong week number when that Sunday still
+// belongs to the previous ISO week (ISO weeks run Mon–Sun).
+function getISOWeek(year: number, month: number, firstDayOfMonth: number, rowIndex: number): number {
+  const mondayDay = 1 - firstDayOfMonth + rowIndex * 7 + 1
+  const d = new Date(Date.UTC(year, month - 1, mondayDay))
+  const dayNum = d.getUTCDay() || 7
+  d.setUTCDate(d.getUTCDate() + 4 - dayNum)
+  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1))
+  return Math.ceil((((d.getTime() - yearStart.getTime()) / 86400000) + 1) / 7)
+}
+
 
 export function DashboardCalendar({ trades, initialMonth, initialYear }: Props) {
   const [month, setMonth] = useState(initialMonth)
@@ -104,56 +116,63 @@ export function DashboardCalendar({ trades, initialMonth, initialYear }: Props) 
       </div>
 
       <div className="rounded-lg border overflow-hidden">
-        <div className="grid grid-cols-7 border-b bg-muted/30">
+        <div className="grid border-b bg-muted/30" style={{ gridTemplateColumns: '2rem repeat(7, minmax(0, 1fr))' }}>
+          <div className="py-2 text-center text-[10px] font-medium text-muted-foreground/50 uppercase">Wk</div>
           {DAY_LABELS.map((d) => (
             <div key={d} className="py-2 text-center text-xs font-medium text-muted-foreground tracking-wide uppercase">{d}</div>
           ))}
         </div>
         <div className="divide-y">
-          {weeks.map((week, wi) => (
-            <div key={wi} className="grid grid-cols-7 divide-x">
-              {week.map((day, di) => {
-                if (!day) return <div key={di} className="h-24 bg-muted/10" />
-                const data = byDay.get(day)
-                const isToday = day === todayDay && month === todayMonth && year === todayYear
-                return (
-                  <div
-                    key={di}
-                    onClick={data ? () => {
-                      const d = dayDate(day)
-                      router.push(`/trades?tab=closed&dateFrom=${d}&dateTo=${d}`)
-                    } : undefined}
-                    className={cn(
-                      'h-24 p-2 flex flex-col gap-1 relative',
-                      data
-                        ? data.total >= 0 ? 'bg-green-50 dark:bg-green-950/20 cursor-pointer hover:brightness-95' : 'bg-red-50 dark:bg-red-950/20 cursor-pointer hover:brightness-95'
-                        : 'bg-background'
-                    )}
-                  >
-                    {data && (
-                      <div className={cn('absolute left-0 inset-y-0 w-[3px]', data.total >= 0 ? 'bg-green-500' : 'bg-red-500')} />
-                    )}
-                    <div className="flex justify-end">
-                      <span className={cn(
-                        'flex items-center justify-center w-6 h-6 rounded-full text-xs font-medium',
-                        isToday ? 'bg-primary text-primary-foreground' : 'text-muted-foreground'
-                      )}>
-                        {day}
-                      </span>
-                    </div>
-                    {data && (
-                      <div className="pl-1 flex flex-col">
-                        <span className={cn('font-medium text-sm', data.total >= 0 ? 'text-green-700 dark:text-green-400' : 'text-red-700 dark:text-red-400')}>
-                          {data.total > 0 ? '+' : ''}{formatCurrency(data.total)}
+          {weeks.map((week, wi) => {
+            const weekNum = getISOWeek(year, month, firstDay, wi)
+            return (
+              <div key={wi} className="grid divide-x" style={{ gridTemplateColumns: '2rem repeat(7, minmax(0, 1fr))' }}>
+                <div className="flex items-start justify-center pt-2 text-[10px] font-medium text-muted-foreground/50 bg-muted/10">
+                  {weekNum}
+                </div>
+                {week.map((day, di) => {
+                  if (!day) return <div key={di} className="h-24 bg-muted/10" />
+                  const data = byDay.get(day)
+                  const isToday = day === todayDay && month === todayMonth && year === todayYear
+                  return (
+                    <div
+                      key={di}
+                      onClick={data ? () => {
+                        const d = dayDate(day)
+                        router.push(`/trades?tab=closed&dateFrom=${d}&dateTo=${d}`)
+                      } : undefined}
+                      className={cn(
+                        'h-24 p-2 flex flex-col gap-1 relative',
+                        data
+                          ? data.total >= 0 ? 'bg-green-50 dark:bg-green-950/20 cursor-pointer hover:brightness-95' : 'bg-red-50 dark:bg-red-950/20 cursor-pointer hover:brightness-95'
+                          : 'bg-background'
+                      )}
+                    >
+                      {data && (
+                        <div className={cn('absolute left-0 inset-y-0 w-[3px]', data.total >= 0 ? 'bg-green-500' : 'bg-red-500')} />
+                      )}
+                      <div className="flex justify-end">
+                        <span className={cn(
+                          'flex items-center justify-center w-6 h-6 rounded-full text-xs font-medium',
+                          isToday ? 'bg-primary text-primary-foreground' : 'text-muted-foreground'
+                        )}>
+                          {day}
                         </span>
-                        <span className="text-[10px] text-muted-foreground">{data.count} trade{data.count !== 1 ? 's' : ''}</span>
                       </div>
-                    )}
-                  </div>
-                )
-              })}
-            </div>
-          ))}
+                      {data && (
+                        <div className="pl-1 flex flex-col">
+                          <span className={cn('font-medium text-sm', data.total >= 0 ? 'text-green-700 dark:text-green-400' : 'text-red-700 dark:text-red-400')}>
+                            {data.total > 0 ? '+' : ''}{formatCurrency(data.total)}
+                          </span>
+                          <span className="text-[10px] text-muted-foreground">{data.count} trade{data.count !== 1 ? 's' : ''}</span>
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            )
+          })}
         </div>
       </div>
     </div>
