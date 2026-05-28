@@ -47,6 +47,7 @@ export async function createTrade(formData: FormData) {
   const userId = await getUserId()
   const raw = Object.fromEntries(formData)
   const data = tradeSchema.parse(raw)
+  const setupIds: string[] = JSON.parse((raw.setupIds as string) || '[]')
 
   if (data.optionType && (!data.strike || !data.expiration)) {
     throw new Error('Options require strike price and expiration date')
@@ -60,7 +61,7 @@ export async function createTrade(formData: FormData) {
     : Number(account.commissionPerStock)
   const commission = data.quantity * commissionRate
 
-  await prisma.trade.create({
+  const trade = await prisma.trade.create({
     data: {
       userId,
       accountId: data.accountId,
@@ -83,6 +84,12 @@ export async function createTrade(formData: FormData) {
     },
   })
 
+  if (setupIds.length > 0) {
+    await prisma.tradeSetup.createMany({
+      data: setupIds.map((setupId) => ({ tradeId: trade.id, setupId })),
+    })
+  }
+
   revalidateTrades()
 }
 
@@ -90,6 +97,7 @@ export async function updateTrade(id: string, formData: FormData) {
   const userId = await getUserId()
   const raw = Object.fromEntries(formData)
   const data = tradeSchema.parse(raw)
+  const setupIds: string[] = JSON.parse((raw.setupIds as string) || '[]')
 
   if (data.optionType && (!data.strike || !data.expiration)) {
     throw new Error('Options require strike price and expiration date')
@@ -120,28 +128,36 @@ export async function updateTrade(id: string, formData: FormData) {
     }
   }
 
-  await prisma.trade.update({
-    where: { id, userId },
-    data: {
-      accountId: data.accountId,
-      name: data.name,
-      ticker: data.ticker,
-      symbol: data.symbol,
-      side: data.side as TradeSide,
-      quantity: data.quantity,
-      entryPrice: data.entryPrice,
-      openDate: new Date(data.openDate),
-      notes: data.notes ?? null,
-      projectedProfit: data.projectedProfit ?? null,
-      instrumentId: data.instrumentId ?? null,
-      optionType: (data.optionType ?? null) as OptionType | null,
-      strike: data.strike ?? null,
-      expiration: data.expiration ? new Date(data.expiration) : null,
-      contractSize: data.contractSize ?? null,
-      exitPrice,
-      closeDate,
-      netPnl,
-    },
+  await prisma.$transaction(async (tx) => {
+    await tx.trade.update({
+      where: { id, userId },
+      data: {
+        accountId: data.accountId,
+        name: data.name,
+        ticker: data.ticker,
+        symbol: data.symbol,
+        side: data.side as TradeSide,
+        quantity: data.quantity,
+        entryPrice: data.entryPrice,
+        openDate: new Date(data.openDate),
+        notes: data.notes ?? null,
+        projectedProfit: data.projectedProfit ?? null,
+        instrumentId: data.instrumentId ?? null,
+        optionType: (data.optionType ?? null) as OptionType | null,
+        strike: data.strike ?? null,
+        expiration: data.expiration ? new Date(data.expiration) : null,
+        contractSize: data.contractSize ?? null,
+        exitPrice,
+        closeDate,
+        netPnl,
+      },
+    })
+    await tx.tradeSetup.deleteMany({ where: { tradeId: id } })
+    if (setupIds.length > 0) {
+      await tx.tradeSetup.createMany({
+        data: setupIds.map((setupId) => ({ tradeId: id, setupId })),
+      })
+    }
   })
 
   revalidateTrades()
