@@ -109,6 +109,18 @@ export async function importQfxTrades(
     // Assignment: stock leg of an option exercise — close the option with the assignment fee,
     // then record the stock at zero commission (fee already on the option side)
     if (rec.isAssignment) {
+      // Skip assignments already stored on a prior run — re-importing the same file would
+      // otherwise re-close the option and add the assigned shares to the position twice.
+      if (rec.fitIds.length > 0) {
+        const alreadyImported = await prisma.trade.findFirst({
+          where: { userId, accountId, importFitIds: { hasSome: rec.fitIds } },
+        })
+        if (alreadyImported) {
+          skipped.push(`${rec.ticker} assignment (duplicate)`)
+          continue
+        }
+      }
+
       // BUY stock → short PUT was assigned; SELL stock → short CALL was assigned
       const assignedOptionType = rec.action === 'BUY' ? 'PUT' : 'CALL'
       const assignDate = new Date(rec.date)
@@ -165,25 +177,56 @@ export async function importQfxTrades(
 
       // Handle the stock leg — commission is $0 since the fee is already on the option
       if (rec.action === 'BUY') {
-        // Short PUT assigned: you receive shares at strike → new LONG position
-        await prisma.trade.create({
-          data: {
-            userId,
-            accountId,
-            name: rec.ticker,
+        // Short PUT assigned: you receive shares at strike. Merge into a standing LONG the
+        // same way a regular buy does — assigned shares are an add to the existing lot, not
+        // a separate position, so they must move the weighted-average cost basis.
+        const openStock = await prisma.trade.findFirst({
+          where: {
+            userId, accountId,
             ticker: rec.ticker,
-            symbol: rec.ticker,
             side: 'LONG',
-            quantity: rec.quantity,
-            entryPrice: rec.unitPrice,
-            openDate: new Date(rec.date),
-            source: 'TS_IMPORT',
-            contractSize: 1,
-            commission: 0,
-            importBatchId: batchId,
+            optionType: null,
+            expiration: null,
+            closeDate: null,
           },
         })
-        created++
+
+        if (openStock) {
+          const existingQty = Number(openStock.quantity)
+          const newQty = existingQty + rec.quantity
+          const newEntry = Math.round(
+            ((Number(openStock.entryPrice) * existingQty) + (rec.unitPrice * rec.quantity)) / newQty * 100
+          ) / 100
+          await prisma.trade.update({
+            where: { id: openStock.id },
+            data: {
+              quantity: newQty,
+              entryPrice: newEntry,
+              // commission stays as-is — the assignment fee is booked on the option leg
+              importFitIds: [...openStock.importFitIds, ...rec.fitIds],
+            },
+          })
+        } else {
+          await prisma.trade.create({
+            data: {
+              userId,
+              accountId,
+              name: rec.ticker,
+              ticker: rec.ticker,
+              symbol: rec.ticker,
+              side: 'LONG',
+              quantity: rec.quantity,
+              entryPrice: rec.unitPrice,
+              openDate: new Date(rec.date),
+              source: 'TS_IMPORT',
+              contractSize: 1,
+              commission: 0,
+              importBatchId: batchId,
+              importFitIds: rec.fitIds,
+            },
+          })
+          created++
+        }
       } else {
         // Short CALL assigned: you deliver shares at strike → close existing LONG position
         const openStock = await prisma.trade.findFirst({
@@ -210,7 +253,13 @@ export async function importQfxTrades(
           if (closeQty >= stockQty) {
             await prisma.trade.update({
               where: { id: openStock.id },
-              data: { exitPrice: rec.unitPrice, closeDate: new Date(rec.date), netPnl, closedByBatchId: batchId },
+              data: {
+                exitPrice: rec.unitPrice,
+                closeDate: new Date(rec.date),
+                netPnl,
+                closedByBatchId: batchId,
+                importFitIds: [...openStock.importFitIds, ...rec.fitIds],
+              },
             })
           } else {
             await prisma.trade.update({
@@ -234,6 +283,7 @@ export async function importQfxTrades(
                 closeDate: new Date(rec.date),
                 netPnl,
                 importBatchId: batchId,
+                importFitIds: rec.fitIds,
               },
             })
           }
@@ -256,6 +306,7 @@ export async function importQfxTrades(
               commission: 0,
               exitPrice: rec.unitPrice,
               closeDate: new Date(rec.date),
+              importFitIds: rec.fitIds,
               netPnl: 0,
               importBatchId: batchId,
             },
