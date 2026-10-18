@@ -38,21 +38,22 @@ export function SetupsSection({ setups }: { setups: Setup[] }) {
 
   return (
     <div className="space-y-3">
-      <div className="flex justify-end">
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-[13px] text-muted-foreground">Tag trades with the strategy behind them, then compare setups on the Trades page.</p>
         <Dialog open={addOpen} onOpenChange={setAddOpen}>
-          <DialogTrigger asChild><Button size="sm">Add Setup</Button></DialogTrigger>
+          <DialogTrigger asChild><Button size="sm">Add setup</Button></DialogTrigger>
           <DialogContent aria-describedby={undefined}>
             <DialogHeader><DialogTitle>New Setup</DialogTitle></DialogHeader>
             <SetupForm onDone={() => setAddOpen(false)} />
           </DialogContent>
         </Dialog>
       </div>
-      <div className="divide-y rounded-md border">
+      <div className="divide-y rounded-lg ring-1 ring-border bg-card">
         {setups.map((setup) => (
           <div key={setup.id} className="flex items-center justify-between px-4 py-3">
             <div>
-              <p className="text-sm font-medium">{setup.name}</p>
-              {setup.description && <p className="text-xs text-muted-foreground">{setup.description}</p>}
+              <p className="text-[14px] font-semibold">{setup.name}</p>
+              {setup.description && <p className="text-[13px] text-muted-foreground">{setup.description}</p>}
             </div>
             <div className="flex gap-2">
               <Dialog open={editingId === setup.id} onOpenChange={(o) => setEditingId(o ? setup.id : null)}>
@@ -67,7 +68,7 @@ export function SetupsSection({ setups }: { setups: Setup[] }) {
           </div>
         ))}
         {setups.length === 0 && (
-          <p className="px-4 py-8 text-center text-sm text-muted-foreground">No setups yet</p>
+          <p className="px-4 py-10 text-center text-[13px] text-muted-foreground">No setups yet. Add one, such as wheel or earnings put, to start tagging trades.</p>
         )}
       </div>
     </div>

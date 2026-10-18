@@ -169,7 +169,7 @@ export function RollTradeDialog({ open, onOpenChange, trade }: Props) {
             <div className="rounded-md border px-3 py-2 text-xs space-y-1">
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Net on roll</span>
-                <span className={`font-mono font-medium ${totalNet >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                <span className={`font-mono font-medium ${totalNet >= 0 ? 'text-gain' : 'text-loss'}`}>
                   {totalNet >= 0 ? '+' : ''}${totalNet.toFixed(2)}
                 </span>
               </div>

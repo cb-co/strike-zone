@@ -2,7 +2,6 @@
 
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
 
 type Props = {
   isConnected: boolean
@@ -33,17 +32,23 @@ export function TSSection({ isConnected, lastSynced }: Props) {
   }
 
   return (
-    <div className="rounded-md border p-4 space-y-3">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Badge variant={isConnected ? 'default' : 'secondary'}>
-            {isConnected ? 'Connected' : 'Not connected'}
-          </Badge>
-          {lastSynced && (
-            <span className="text-xs text-muted-foreground">
-              Last synced: {new Date(lastSynced).toLocaleString()}
-            </span>
-          )}
+    <div className="rounded-lg ring-1 ring-border bg-card p-5 space-y-4">
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div className="space-y-1">
+          <div className="flex items-center gap-2.5">
+            <span
+              aria-hidden
+              className={`size-2.5 rounded-full ${isConnected ? 'bg-gain shadow-[0_0_0_3px_color-mix(in_oklch,var(--gain)_20%,transparent)]' : 'bg-muted-foreground/40'}`}
+            />
+            <span className="text-[14px] font-semibold">{isConnected ? 'Connected to TradeStation' : 'Not connected'}</span>
+          </div>
+          <p className="text-[13px] text-muted-foreground">
+            {isConnected
+              ? lastSynced
+                ? `Last synced ${new Date(lastSynced).toLocaleString()}`
+                : 'Connected, not synced yet'
+              : 'Connect once and sync to pull trades straight from your TradeStation account.'}
+          </p>
         </div>
         <div className="flex gap-2">
           {!isConnected ? (
@@ -53,7 +58,7 @@ export function TSSection({ isConnected, lastSynced }: Props) {
           ) : (
             <>
               <Button size="sm" variant="outline" onClick={handleSync} disabled={syncing}>
-                {syncing ? 'Syncing…' : 'Sync Now'}
+                {syncing ? 'Syncing…' : 'Sync now'}
               </Button>
               <Button size="sm" variant="destructive" onClick={handleDisconnect}>
                 Disconnect
@@ -63,10 +68,10 @@ export function TSSection({ isConnected, lastSynced }: Props) {
         </div>
       </div>
       {syncResult && (
-        <div className={`text-sm rounded p-2 ${syncResult.error ? 'bg-red-50 text-red-700' : 'bg-green-50 text-green-700'}`}>
+        <div role="status" className={`text-[13px] rounded-md px-3 py-2 ${syncResult.error ? 'bg-loss-soft text-loss' : 'bg-gain-soft text-gain'}`}>
           {syncResult.error
-            ? `Error: ${syncResult.error}`
-            : `Sync complete — ${syncResult.created} new, ${syncResult.updated} updated`}
+            ? `Sync failed: ${syncResult.error}. Try again, or reconnect if it keeps failing.`
+            : `Sync complete: ${syncResult.created} new, ${syncResult.updated} updated.`}
         </div>
       )}
     </div>

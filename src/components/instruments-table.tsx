@@ -74,31 +74,31 @@ export function InstrumentsTable({ instruments }: { instruments: Instrument[] })
     <div className="space-y-4">
       <div className="flex justify-end">
         <Dialog open={addOpen} onOpenChange={setAddOpen}>
-          <DialogTrigger asChild><Button>Add Instrument</Button></DialogTrigger>
+          <DialogTrigger asChild><Button>Add instrument</Button></DialogTrigger>
           <DialogContent aria-describedby={undefined}>
             <DialogHeader><DialogTitle>New Instrument</DialogTitle></DialogHeader>
             <InstrumentForm onDone={() => setAddOpen(false)} />
           </DialogContent>
         </Dialog>
       </div>
-      <div className="rounded-md border">
-        <table className="w-full text-sm">
-          <thead className="border-b bg-muted/50">
+      <div className="rounded-lg ring-1 ring-border bg-card relative overflow-x-auto">
+        <table className="data-table w-full text-[13px]">
+          <thead className="border-b bg-muted/60">
             <tr>
-              <th className="px-4 py-3 text-left font-medium">Ticker</th>
-              <th className="px-4 py-3 text-left font-medium">Name</th>
-              <th className="px-4 py-3 text-left font-medium">Type</th>
-              <th className="px-4 py-3 text-left font-medium">Description</th>
-              <th className="px-4 py-3 text-right font-medium">Actions</th>
+              <th className="px-4 py-2.5 text-left">Ticker</th>
+              <th className="px-4 py-2.5 text-left">Name</th>
+              <th className="px-4 py-2.5 text-left">Type</th>
+              <th className="px-4 py-2.5 text-left">Description</th>
+              <th className="px-4 py-2.5"><span className="sr-only">Actions</span></th>
             </tr>
           </thead>
           <tbody className="divide-y">
             {instruments.map((inst) => (
-              <tr key={inst.id}>
-                <td className="px-4 py-3 font-mono font-medium">{inst.ticker}</td>
+              <tr key={inst.id} className="hover:bg-accent/60 transition-colors">
+                <td className="px-4 py-3 font-mono text-[15px] font-semibold tracking-[0.02em]">{inst.ticker}</td>
                 <td className="px-4 py-3">{inst.name}</td>
                 <td className="px-4 py-3"><Badge variant={typeColors[inst.type]}>{inst.type}</Badge></td>
-                <td className="px-4 py-3 text-muted-foreground text-xs">{inst.description}</td>
+                <td className="px-4 py-3 text-muted-foreground">{inst.description}</td>
                 <td className="px-4 py-3">
                   <div className="flex justify-end gap-2">
                     <Dialog open={editingId === inst.id} onOpenChange={(o) => setEditingId(o ? inst.id : null)}>
@@ -114,7 +114,7 @@ export function InstrumentsTable({ instruments }: { instruments: Instrument[] })
               </tr>
             ))}
             {instruments.length === 0 && (
-              <tr><td colSpan={5} className="px-4 py-8 text-center text-muted-foreground">No instruments yet</td></tr>
+              <tr><td colSpan={5} className="px-4 py-12 text-center text-muted-foreground">No instruments yet. Add the tickers you trade to name and group them.</td></tr>
             )}
           </tbody>
         </table>

@@ -34,19 +34,34 @@ export function BySetupsTab({ trades }: Props) {
   if (untagged.count > 0) stats.push(untagged)
   stats.sort((a, b) => b.netPnl - a.netPnl)
 
+  if (stats.length === 0) {
+    return <p className="rounded-lg ring-1 ring-border bg-card px-4 py-12 text-center text-muted-foreground">No closed trades yet.</p>
+  }
+
   return (
-    <div className="rounded-md border divide-y">
-      {stats.map((s) => (
-        <div key={s.name} className="flex items-center justify-between px-4 py-3">
-          <span className="font-medium w-36">{s.name}</span>
-          <span className="text-sm text-muted-foreground w-24">{s.count} trades</span>
-          <span className="text-sm w-24">{s.count > 0 ? Math.round((s.wins / s.count) * 100) : 0}% win</span>
-          <span className={`font-medium text-right ${s.netPnl >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-            {s.netPnl > 0 ? '+' : ''}{formatCurrency(s.netPnl)}
-          </span>
-        </div>
-      ))}
-      {stats.length === 0 && <p className="px-4 py-8 text-center text-sm text-muted-foreground">No closed trades</p>}
+    <div className="rounded-lg ring-1 ring-border bg-card relative overflow-x-auto">
+      <table className="data-table w-full text-[13px]">
+        <thead className="border-b bg-muted/60">
+          <tr>
+            <th className="px-4 py-2.5 text-left">Setup</th>
+            <th className="px-4 py-2.5 text-right">Trades</th>
+            <th className="px-4 py-2.5 text-right">Win rate</th>
+            <th className="px-4 py-2.5 text-right">Net P&amp;L</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y">
+          {stats.map((s) => (
+            <tr key={s.name} className="hover:bg-accent/60 transition-colors">
+              <td className={`px-4 py-2.5 font-semibold ${s.name === 'Untagged' ? 'text-muted-foreground' : ''}`}>{s.name}</td>
+              <td className="px-4 py-2.5 text-right text-muted-foreground">{s.count}</td>
+              <td className="px-4 py-2.5 text-right">{s.count > 0 ? Math.round((s.wins / s.count) * 100) : 0}%</td>
+              <td className={`px-4 py-2.5 text-right font-semibold ${s.netPnl >= 0 ? 'text-gain' : 'text-loss'}`}>
+                {s.netPnl > 0 ? '+' : ''}{formatCurrency(s.netPnl)}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   )
 }

@@ -1,7 +1,9 @@
 'use client'
 
 import { useState } from 'react'
-import { Button } from '@/components/ui/button'
+import { HugeiconsIcon } from '@hugeicons/react'
+import { MoreHorizontalIcon } from '@hugeicons/core-free-icons'
+import { Flap, FlapStatus } from '@/components/flap'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -45,114 +47,210 @@ export type DashboardPosition = {
   tradeSetups: { setupId: string }[]
 }
 
+export type BoardTotal = {
+  label: string
+  value: string
+  tone?: 'ink' | 'gain' | 'loss' | 'yellow' | 'dim'
+}
+
 type Props = {
   positions: DashboardPosition[]
-  projProfitTotal: number
+  totals: BoardTotal[]
   accounts: { id: string; name: string; optionAssignmentFee: number }[]
   setups: { id: string; name: string }[]
 }
 
-export function DashboardOpenPositions({ positions, projProfitTotal, accounts, setups }: Props) {
+type Status = { label: string; kind: 'ontime' | 'due' | 'late' | 'hold' }
+
+function statusOf(dte: number | null): Status {
+  if (dte === null) return { label: 'Holding', kind: 'hold' }
+  if (dte < 0) return { label: 'Expired', kind: 'late' }
+  if (dte === 0) return { label: 'Today', kind: 'late' }
+  if (dte <= 7) return { label: 'Due', kind: 'due' }
+  return { label: 'On time', kind: 'ontime' }
+}
+
+function daysUntil(iso: string | null) {
+  if (!iso) return null
+  // Expirations are calendar dates stored at UTC midnight; compare whole days.
+  const exp = new Date(iso)
+  const now = new Date()
+  const todayUtc = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate())
+  return Math.round((exp.getTime() - todayUtc) / 86_400_000)
+}
+
+/** A field that does not apply to this row posts a single dim dash. */
+function Blank() {
+  return <Flap value="—" tone="dim" />
+}
+
+function money(n: number, digits = 2) {
+  const s = formatCurrency(n, { minimumFractionDigits: digits, maximumFractionDigits: digits })
+  return n > 0 ? `+${s}` : s
+}
+
+function strikeText(n: number | null) {
+  if (n == null) return ''
+  return Number.isInteger(n) ? String(n) : n.toFixed(2).replace(/0$/, '')
+}
+
+const TH = 'board-label font-normal px-1.5 pb-2 text-left whitespace-nowrap'
+const TD = 'px-1.5 py-[3px] whitespace-nowrap'
+
+export function DashboardOpenPositions({ positions, totals, accounts, setups }: Props) {
   const [editTrade, setEditTrade] = useState<DashboardPosition | null>(null)
   const [closingTrade, setClosingTrade] = useState<DashboardPosition | null>(null)
   const [rollingTrade, setRollingTrade] = useState<DashboardPosition | null>(null)
   const [deletingTrade, setDeletingTrade] = useState<DashboardPosition | null>(null)
 
-  if (positions.length === 0) {
-    return <p className="text-xs text-muted-foreground">No open trades</p>
-  }
+  // A departure board runs in timetable order: soonest expiration first, stock last.
+  const rows = [...positions]
+    .map((t) => ({ t, dte: daysUntil(t.expiration) }))
+    .sort((a, b) => (a.dte ?? Infinity) - (b.dte ?? Infinity))
 
   return (
     <>
-      <div className="rounded-md border overflow-x-auto">
-        <table className="w-full text-xs">
-          <thead className="border-b bg-muted/50">
-            <tr>
-              <th className="px-3 py-2 text-left font-medium">Ticker</th>
-              <th className="px-3 py-2 text-left font-medium">Symbol</th>
-              <th className="px-3 py-2 text-left font-medium">Side</th>
-              <th className="px-3 py-2 text-right font-medium">Qty</th>
-              <th className="px-3 py-2 text-right font-medium">Entry</th>
-              <th className="px-3 py-2 text-right font-medium">Proj. Profit</th>
-              <th className="px-3 py-2 text-right font-medium">Days Open</th>
-              <th className="px-3 py-2 text-left font-medium">Expiration</th>
-              <th className="px-3 py-2 text-right font-medium w-10">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y">
-            {positions.map((t) => {
-              const daysOpen = Math.floor((Date.now() - new Date(t.openDate).getTime()) / 86_400_000)
-              const dte = t.expiration
-                ? Math.ceil((new Date(t.expiration).getTime() - Date.now()) / 86_400_000)
-                : null
-              return (
-                <tr key={t.id} className="hover:bg-muted/30 transition-colors">
-                  <td className="px-3 py-2 font-mono font-medium">{t.ticker}</td>
-                  <td className="px-3 py-2 font-mono text-muted-foreground text-[11px]">{t.symbol}</td>
-                  <td className="px-3 py-2">
-                    <span className={cn(
-                      'inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide ring-1',
-                      t.side === 'LONG'
-                        ? 'bg-emerald-50 text-emerald-700 ring-emerald-200'
-                        : 'bg-rose-50 text-rose-700 ring-rose-200',
-                    )}>
-                      {t.side}
-                    </span>
-                  </td>
-                  <td className="px-3 py-2 text-right tabular-nums">{t.quantity}</td>
-                  <td className="px-3 py-2 text-right tabular-nums">{formatCurrency(t.entryPrice)}</td>
-                  <td className={cn(
-                    'px-3 py-2 text-right tabular-nums',
-                    t.projectedProfit != null
-                      ? t.projectedProfit >= 0 ? 'text-emerald-600' : 'text-rose-600'
-                      : 'text-muted-foreground',
-                  )}>
-                    {t.projectedProfit != null ? formatCurrency(t.projectedProfit, { minimumFractionDigits: 0, maximumFractionDigits: 0 }) : '—'}
-                  </td>
-                  <td className="px-3 py-2 text-right text-muted-foreground tabular-nums">{daysOpen}d</td>
-                  <td className={cn(
-                    'px-3 py-2 tabular-nums',
-                    dte !== null && dte <= 0 ? 'text-rose-600 font-medium' :
-                    dte !== null && dte <= 7 ? 'text-amber-600 font-medium' :
-                    'text-muted-foreground',
-                  )}>
-                    {t.expiration ? new Date(t.expiration).toLocaleDateString('en-US', { timeZone: 'UTC', month: 'short', day: 'numeric' }) : '—'}
-                    {dte !== null && dte <= 7 && dte > 0 && <span className="ml-1 text-[10px]">({dte}d)</span>}
-                    {dte !== null && dte <= 0 && <span className="ml-1 text-[10px]">(exp)</span>}
-                  </td>
-                  <td className="px-3 py-2 text-right">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button size="sm" variant="ghost" className="h-6 w-6 p-0 text-xs">···</Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => setEditTrade(t)}>Edit</DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => setClosingTrade(t)}>Close</DropdownMenuItem>
-                        {t.optionType && (
-                          <DropdownMenuItem onClick={() => setRollingTrade(t)}>Roll</DropdownMenuItem>
-                        )}
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem variant="destructive" onClick={() => setDeletingTrade(t)}>Delete</DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </td>
+      <section aria-labelledby="board-title" className="board overflow-hidden">
+        {/* Board header */}
+        <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1 px-4 md:px-5 pt-4">
+          <div className="flex items-baseline gap-3">
+            <h2 id="board-title" className="font-heading text-[15px] font-semibold uppercase tracking-[0.1em] text-flap-yellow">
+              Departures
+            </h2>
+            <span className="text-[12px] text-flap-dim">Open positions by expiration</span>
+          </div>
+          <span className="text-[12px] text-flap-dim tabular-nums">
+            {positions.length} open
+          </span>
+        </div>
+
+        {/* Totals line */}
+        <dl className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-5 gap-x-6 gap-y-4 px-4 md:px-5 pt-4 pb-5 border-b border-white/8">
+          {totals.map((k, i) => (
+            <div key={k.label} className="min-w-0">
+              <dt className="board-label mb-1.5">{k.label}</dt>
+              <dd>
+                <Flap id={`total:${k.label}`} value={k.value} tone={k.tone ?? 'ink'} size="md" delay={i * 40} />
+              </dd>
+            </div>
+          ))}
+        </dl>
+
+        {rows.length === 0 ? (
+          <div className="px-4 md:px-5 py-8 space-y-3">
+            <Flap value="No departures" tone="dim" />
+            <p className="text-[13px] text-flap-dim max-w-md">
+              Nothing is open on this account. Add a trade, or import a QFX file from the Trades page, and it will post here by expiration.
+            </p>
+          </div>
+        ) : (
+          <div className="relative overflow-x-auto px-2.5 md:px-3.5 pt-4 pb-4">
+            <table className="w-full border-separate border-spacing-0">
+              <thead>
+                <tr>
+                  <th className={TH}>Ticker</th>
+                  <th className={cn(TH, 'hidden sm:table-cell')}>Type</th>
+                  <th className={cn(TH, 'hidden md:table-cell')}>Strike</th>
+                  <th className={cn(TH, 'hidden md:table-cell')}>Expires</th>
+                  <th className={cn(TH, 'text-right')}>Days</th>
+                  <th className={cn(TH, 'hidden lg:table-cell text-right')}>Qty</th>
+                  <th className={cn(TH, 'hidden lg:table-cell text-right')}>Entry</th>
+                  <th className={cn(TH, 'text-right')}>Proj.</th>
+                  <th className={cn(TH, 'hidden sm:table-cell pl-5')}>Status</th>
+                  <th className={TH}><span className="sr-only">Actions</span></th>
                 </tr>
-              )
-            })}
-          </tbody>
-          <tfoot className="border-t bg-muted/30">
-            <tr>
-              <td colSpan={5} className="px-3 py-2 text-right text-xs font-medium text-muted-foreground">Total Proj. Profit</td>
-              <td className="px-3 py-2 text-right text-xs font-medium">
-                <span className={projProfitTotal >= 0 ? 'text-emerald-600' : 'text-rose-600'}>
-                  {formatCurrency(projProfitTotal, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
-                </span>
-              </td>
-              <td colSpan={3}></td>
-            </tr>
-          </tfoot>
-        </table>
-      </div>
+              </thead>
+              <tbody>
+                {rows.map(({ t, dte }, i) => {
+                  const status = statusOf(dte)
+                  const delay = Math.min(i, 8) * 20
+                  const fid = (col: string) => `pos:${t.id}:${col}`
+                  const isNext = dte !== null && rows.findIndex((r) => r.dte !== null) === i
+                  const type = t.optionType ?? 'STK'
+                  const exp = t.expiration
+                    ? new Date(t.expiration).toLocaleDateString('en-US', { timeZone: 'UTC', month: 'short', day: '2-digit' })
+                    : ''
+                  return (
+                    <tr
+                      key={t.id}
+                      className={cn('group/row', isNext && '[&>td]:bg-white/[0.045] [&>td:first-child]:rounded-l-sm [&>td:last-child]:rounded-r-sm')}
+                      title={`${isNext ? 'Next departure · ' : ''}${t.name} · ${t.symbol}`}
+                    >
+                      <td className={TD}>
+                        <Flap id={fid('tk')} value={t.ticker} cells={5} delay={delay} tone={isNext ? 'yellow' : 'ink'} />
+                      </td>
+                      <td className={cn(TD, 'hidden sm:table-cell')}>
+                        <Flap id={fid('ty')} value={`${t.side === 'SHORT' ? 'S' : 'L'} ${type}`} cells={6} tone={t.optionType ? 'ink' : 'dim'} delay={delay} />
+                      </td>
+                      <td className={cn(TD, 'hidden md:table-cell')}>
+                        {t.strike == null ? <Blank /> : <Flap id={fid('st')} value={strikeText(t.strike)} cells={6} align="right" delay={delay} />}
+                      </td>
+                      <td className={cn(TD, 'hidden md:table-cell')}>
+                        {exp ? <Flap id={fid('ex')} value={exp} cells={6} delay={delay} /> : <Blank />}
+                      </td>
+                      <td className={cn(TD, 'text-right')}>
+                        {dte === null ? <Blank /> : (
+                          <Flap
+                            id={fid('dte')}
+                            value={String(dte)}
+                            cells={3}
+                            align="right"
+                            tone={status.kind === 'late' ? 'loss' : status.kind === 'due' ? 'yellow' : 'ink'}
+                            delay={delay}
+                          />
+                        )}
+                      </td>
+                      <td className={cn(TD, 'hidden lg:table-cell text-right')}>
+                        <Flap id={fid('q')} value={String(t.quantity)} cells={4} align="right" tone="dim" delay={delay} />
+                      </td>
+                      <td className={cn(TD, 'hidden lg:table-cell text-right')}>
+                        <Flap id={fid('en')} value={formatCurrency(t.entryPrice)} cells={9} align="right" tone="dim" delay={delay} />
+                      </td>
+                      <td className={cn(TD, 'text-right')}>
+                        {t.projectedProfit == null ? <Blank /> : (
+                          <Flap
+                            id={fid('pp')}
+                            value={money(t.projectedProfit)}
+                            cells={10}
+                            align="right"
+                            tone={t.projectedProfit >= 0 ? 'gain' : 'loss'}
+                            delay={delay}
+                          />
+                        )}
+                      </td>
+                      <td className={cn(TD, 'hidden sm:table-cell pl-5')}>
+                        <FlapStatus label={status.label} kind={status.kind} />
+                      </td>
+                      <td className={cn(TD, 'text-right w-8')}>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <button
+                              type="button"
+                              aria-label={`Actions for ${t.ticker}`}
+                              className="grid place-items-center size-7 rounded-sm text-flap-dim hover:text-flap-ink hover:bg-flap focus-visible:outline-2 focus-visible:outline-flap-yellow transition-colors"
+                            >
+                              <HugeiconsIcon icon={MoreHorizontalIcon} size={18} />
+                            </button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => setEditTrade(t)}>Edit</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => setClosingTrade(t)}>Close</DropdownMenuItem>
+                            {t.optionType && (
+                              <DropdownMenuItem onClick={() => setRollingTrade(t)}>Roll</DropdownMenuItem>
+                            )}
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem variant="destructive" onClick={() => setDeletingTrade(t)}>Delete</DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
 
       {editTrade && (
         <TradeForm
@@ -219,7 +317,7 @@ export function DashboardOpenPositions({ positions, projProfitTotal, accounts, s
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              className="bg-loss text-white hover:bg-loss/90"
               onClick={async () => {
                 if (deletingTrade) await deleteTrade(deletingTrade.id)
                 setDeletingTrade(null)

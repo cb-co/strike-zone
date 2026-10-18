@@ -9,6 +9,8 @@ import { AddTradeButton } from '@/components/add-trade-button'
 import { ImportQfxButton } from '@/components/import-qfx-button'
 import { TradesTabsClient } from '@/components/trades-tabs-client'
 import { calcOpenRisk } from '@/lib/trades'
+import { PageHeader } from '@/components/page-header'
+import { formatCurrency } from '@/lib/format'
 
 type Props = {
   searchParams?: Promise<Record<string, string | string[]>>
@@ -163,9 +165,10 @@ export default async function TradesPage(props: Props) {
 
     content = (
       <>
-        <div className="mb-2 text-sm text-muted-foreground">
-          Open Risk: <span className="font-medium">${openRisk.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
-        </div>
+        <p className="mb-3 text-[13px] text-muted-foreground">
+          Open risk across all accounts{' '}
+          <span className="font-semibold text-warn tabular-nums">{formatCurrency(openRisk)}</span>
+        </p>
         <Suspense>
           <TradesTable
             trades={normalizeTradeList(rawTrades)}
@@ -244,19 +247,23 @@ export default async function TradesPage(props: Props) {
   }
 
   return (
-    <div className="p-6 space-y-4">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">Trades</h1>
-        <div className="flex items-center gap-2">
-          <ImportQfxButton accounts={accounts} />
-          <AddTradeButton accounts={accounts} setups={setups} />
-        </div>
-      </div>
+    <div className="px-4 py-5 md:px-8 md:py-7 space-y-6">
+      <PageHeader
+        page="trades"
+        title="Trades"
+        meta={`${openCount} open · ${closedCount} closed`}
+        actions={
+          <>
+            <ImportQfxButton accounts={accounts} />
+            <AddTradeButton accounts={accounts} setups={setups} />
+          </>
+        }
+      />
 
       <Suspense fallback={
-        <div className="inline-flex h-9 items-center justify-center rounded-lg bg-muted p-1 text-muted-foreground gap-1">
+        <div className="inline-flex h-9 items-center rounded-md bg-card ring-1 ring-border p-[3px] gap-1">
           {Array.from({ length: 5 }).map((_, i) => (
-            <div key={i} className="h-7 w-20 rounded-md bg-muted-foreground/10 animate-pulse" />
+            <div key={i} className="h-7 w-20 rounded-sm bg-muted animate-pulse" />
           ))}
         </div>
       }>

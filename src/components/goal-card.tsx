@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { BarChart, Bar, Cell, XAxis, ReferenceLine, ResponsiveContainer, Tooltip } from 'recharts'
+import { BarChart, Bar, Cell, XAxis, YAxis, CartesianGrid, ReferenceLine, ResponsiveContainer, Tooltip } from 'recharts'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
@@ -11,6 +11,8 @@ import { updateGoal, deleteGoal } from '@/actions/goals'
 import { monthlyBreakdown, expectedCumPnL } from '@/lib/goals'
 import { formatCurrency } from '@/lib/format'
 import Link from 'next/link'
+import { Figure, Punctuality, RouteLine } from '@/components/goal-timetable'
+import { Key } from '@/components/equity-chart'
 
 export type GoalCardData = {
   id: string
@@ -59,35 +61,34 @@ export function GoalCard({ goal }: { goal: GoalCardData }) {
 
   if (isPast) {
     return (
-      <div className="rounded-lg border p-4 opacity-70">
-        <div className="flex items-center justify-between">
-          <div>
-            <span className="font-semibold">{goal.year}</span>
-            <span className="ml-2 text-sm text-muted-foreground">{goal.accountName}</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <Badge variant="secondary">COMPLETED</Badge>
-            <span className={`font-medium text-sm ${actualYTD >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-              {formatCurrency(actualYTD)} / {formatCurrency(goal.goalAmount)}
-            </span>
-          </div>
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg ring-1 ring-border bg-card/60 px-5 py-3.5">
+        <div className="flex items-baseline gap-3">
+          <span className="font-heading text-[18px] font-semibold tabular-nums">{goal.year}</span>
+          <span className="text-[13px] text-muted-foreground">{goal.accountName}</span>
+        </div>
+        <div className="flex items-center gap-3">
+          <Badge variant="secondary">Completed</Badge>
+          <span className="text-[13px] tabular-nums">
+            <span className={`font-semibold ${actualYTD >= 0 ? 'text-gain' : 'text-loss'}`}>{formatCurrency(actualYTD)}</span>
+            <span className="text-muted-foreground"> of {formatCurrency(goal.goalAmount)}</span>
+          </span>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="rounded-lg border p-5 space-y-4">
+    <article className="rounded-lg ring-1 ring-border bg-card shadow-[0_1px_2px_oklch(0.2_0.02_262/0.06)] p-5 md:p-6 space-y-5">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <span className="text-lg font-semibold">{goal.year}</span>
-          <span className="ml-2 text-muted-foreground">{goal.accountName}</span>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-baseline gap-3">
+          <h2 className="text-[24px] leading-none font-semibold tabular-nums">{goal.year}</h2>
+          <span className="text-[14px] text-muted-foreground">{goal.accountName}</span>
         </div>
-        <div className="flex items-center gap-2">
-          <span className="text-sm text-muted-foreground">Goal: <span className="font-medium text-foreground">{formatCurrency(goal.goalAmount)}</span></span>
+        <div className="flex items-center gap-3">
+          <span className="text-[13px] text-muted-foreground">Goal <span className="font-semibold text-foreground tabular-nums">{formatCurrency(goal.goalAmount)}</span></span>
           <Dialog open={editOpen} onOpenChange={setEditOpen}>
-            <DialogTrigger asChild><Button size="sm" variant="outline">Edit</Button></DialogTrigger>
+            <DialogTrigger asChild><Button size="sm" variant="outline">Edit goal</Button></DialogTrigger>
             <DialogContent aria-describedby={undefined}>
               <DialogHeader><DialogTitle>Edit Goal</DialogTitle></DialogHeader>
               <form action={(fd) => {
@@ -131,65 +132,64 @@ export function GoalCard({ goal }: { goal: GoalCardData }) {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-3 gap-4 text-sm">
-        <div>
-          <p className="text-muted-foreground">Actual YTD</p>
-          <p className={`font-semibold text-base ${actualYTD >= 0 ? 'text-green-600' : 'text-red-600'}`}>{formatCurrency(actualYTD)}</p>
-        </div>
-        <div>
-          <p className="text-muted-foreground">Expected YTD</p>
-          <p className="font-semibold text-base">{formatCurrency(expectedYTD)}</p>
-        </div>
-        <div>
-          <p className="text-muted-foreground">Gap</p>
-          <p className={`font-semibold text-base ${gap >= 0 ? 'text-green-600' : 'text-red-600'}`}>{gap > 0 ? '+' : ''}{formatCurrency(gap)}</p>
-        </div>
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <dl className="grid grid-cols-3 gap-6 max-w-lg flex-1">
+          <Figure label="Actual YTD" value={formatCurrency(actualYTD)} tone={actualYTD >= 0 ? 'gain' : 'loss'} />
+          <Figure label="Scheduled YTD" value={formatCurrency(expectedYTD)} />
+          <Figure label="Gap" value={`${gap > 0 ? '+' : ''}${formatCurrency(gap)}`} tone={gap >= 0 ? 'gain' : 'loss'} />
+        </dl>
+        <Punctuality gap={gap} />
       </div>
 
-      {/* Progress bars */}
-      <div className="space-y-1.5">
-        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-          <span className="w-16 shrink-0">Actual</span>
-          <div className="flex-1 bg-muted rounded-full h-2">
-            <div className="bg-green-500 h-2 rounded-full transition-all" style={{ width: `${actualPct * 100}%` }} />
-          </div>
-          <span className="w-10 text-right tabular-nums">{(actualPct * 100).toFixed(1)}%</span>
-        </div>
-        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-          <span className="w-16 shrink-0">Expected</span>
-          <div className="flex-1 bg-muted rounded-full h-2">
-            <div className="bg-blue-400 h-2 rounded-full transition-all" style={{ width: `${expectedPct * 100}%` }} />
-          </div>
-          <span className="w-10 text-right tabular-nums">{(expectedPct * 100).toFixed(1)}%</span>
-        </div>
-      </div>
+      {/* Route */}
+      <RouteLine
+        trainPos={Math.max(0, actualPct)}
+        schedPos={Math.max(0, expectedPct)}
+        curveFactor={goal.curveFactor}
+        monthIndex={goal.year === currentYear ? new Date().getMonth() : -1}
+      />
+      <p className="-mt-2 text-[13px] text-muted-foreground tabular-nums">
+        {(Math.max(0, actualPct) * 100).toFixed(1)}% of the goal reached, {(Math.max(0, expectedPct) * 100).toFixed(1)}% scheduled by today.
+      </p>
 
       {/* Mini bar chart */}
-      <div className="h-24">
+      <div className="flex items-center gap-5">
+        <Key bar color="var(--chart-1)" label="Actual P&L by month" />
+        <Key bar color="color-mix(in oklch, var(--muted-foreground) 45%, transparent)" label="Scheduled" />
+      </div>
+      <div className="h-36 -mt-2">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={chartData} margin={{ top: 4, right: 0, bottom: 0, left: 0 }} barGap={2} barCategoryGap="25%">
             <XAxis
               dataKey="idx"
               tickFormatter={(idx) => MONTHS[idx as number]}
-              tick={{ fontSize: 9, fill: 'var(--muted-foreground)' }}
+              tick={{ fontSize: 10, fill: 'var(--muted-foreground)', fontWeight: 600 }}
               tickLine={false}
               axisLine={false}
             />
-            <ReferenceLine y={0} stroke="var(--border)" strokeWidth={1} />
-            <Bar dataKey="expected" name="Expected" fill="#9ca3af" opacity={0.45} radius={[2, 2, 0, 0]} />
-            <Bar dataKey="actual" name="Actual" fill="#3b82f6" radius={[2, 2, 0, 0]}>
+            <CartesianGrid vertical={false} stroke="var(--border)" />
+            <YAxis
+              width={44}
+              tick={{ fontSize: 10, fill: 'var(--muted-foreground)' }}
+              tickLine={false}
+              axisLine={false}
+              tickFormatter={(v) => `${Number(v) < 0 ? '−' : ''}$${Math.abs(Number(v) / 1000).toFixed(0)}k`}
+            />
+            <ReferenceLine y={0} stroke="var(--foreground)" strokeOpacity={0.35} strokeWidth={1} />
+            <Bar isAnimationActive={false} dataKey="expected" name="Scheduled" fill="var(--muted-foreground)" opacity={0.3} radius={[1, 1, 0, 0]} />
+            <Bar isAnimationActive={false} dataKey="actual" name="Actual" fill="var(--chart-1)" radius={[1, 1, 0, 0]}>
               {chartData.map((d, i) => (
-                <Cell key={i} fill={d.actual >= 0 ? '#3b82f6' : '#ef4444'} />
+                <Cell key={i} fill={d.actual >= 0 ? 'var(--chart-1)' : 'var(--loss)'} />
               ))}
             </Bar>
             <Tooltip
-              cursor={false}
+              cursor={{ fill: 'var(--accent)', opacity: 0.6 }}
               contentStyle={{
                 backgroundColor: 'var(--popover)',
                 borderColor: 'var(--border)',
                 color: 'var(--popover-foreground)',
-                borderRadius: '6px',
-                fontSize: '11px',
+                borderRadius: '4px',
+                fontSize: '12px',
               }}
               labelStyle={{ color: 'var(--muted-foreground)' }}
               itemStyle={{ color: 'var(--popover-foreground)' }}
@@ -201,16 +201,16 @@ export function GoalCard({ goal }: { goal: GoalCardData }) {
       </div>
 
       {/* Footer */}
-      <div className="flex items-center justify-between text-sm text-muted-foreground border-t pt-3">
-        <div className="flex gap-4">
-          <span>Fixed WD: {formatCurrency(goal.monthlyFixedWd)}/mo</span>
-          <span>Var WD: {(goal.monthlyVariableWdPct * 100).toFixed(0)}%</span>
-          <span>Curve: {goal.curveFactor}</span>
+      <div className="flex flex-wrap items-center justify-between gap-3 text-[13px] text-muted-foreground border-t pt-4">
+        <div className="flex flex-wrap gap-x-5 gap-y-1 tabular-nums">
+          <span>Fixed withdrawal <span className="text-foreground font-medium">{formatCurrency(goal.monthlyFixedWd)}/mo</span></span>
+          <span>Variable withdrawal <span className="text-foreground font-medium">{(goal.monthlyVariableWdPct * 100).toFixed(0)}%</span></span>
+          <span>Curve <span className="text-foreground font-medium">{goal.curveFactor}</span></span>
         </div>
-        <Link href={`/monthly?goalId=${goal.id}`} className="text-primary hover:underline text-xs">
-          Monthly breakdown →
+        <Link href={`/monthly?goalId=${goal.id}`} className="text-primary font-semibold hover:underline">
+          Monthly breakdown
         </Link>
       </div>
-    </div>
+    </article>
   )
 }

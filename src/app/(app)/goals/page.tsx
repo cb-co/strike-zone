@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { prisma } from '@/lib/prisma'
 import { GoalCard, type GoalCardData } from '@/components/goal-card'
 import { NewGoalButton } from '@/components/new-goal-button'
+import { PageHeader } from '@/components/page-header'
 
 export default async function GoalsPage() {
   const supabase = await createClient()
@@ -72,17 +73,19 @@ export default async function GoalsPage() {
   )
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">Goals</h1>
-        <NewGoalButton accounts={accounts} />
-      </div>
+    <div className="px-4 py-5 md:px-8 md:py-7 space-y-7 max-w-6xl">
+      <PageHeader page="goals" title="Goals" meta="Yearly income timetables" actions={<NewGoalButton accounts={accounts} />} />
       <div className="space-y-4">
         {goalsWithPnl.map((goal) => (
           <GoalCard key={goal.id} goal={goal} />
         ))}
         {goalsWithPnl.length === 0 && (
-          <p className="text-muted-foreground text-sm">No goals yet. Create one to track your annual P&L target.</p>
+          <div className="rounded-lg border border-dashed p-8 max-w-xl space-y-1.5">
+            <p className="text-[15px] font-semibold">No goals yet</p>
+            <p className="text-[13px] text-muted-foreground">
+              A goal sets the year&apos;s income target, how it builds month by month (the curve), and what you plan to withdraw. The dashboard then tells you whether the book is ahead of or behind it.
+            </p>
+          </div>
         )}
       </div>
     </div>

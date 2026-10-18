@@ -16,7 +16,7 @@ export function NewGoalButton({ accounts }: Props) {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild><Button>New Goal</Button></DialogTrigger>
+      <DialogTrigger asChild><Button>New goal</Button></DialogTrigger>
       <DialogContent aria-describedby={undefined}>
         <DialogHeader><DialogTitle>New Goal</DialogTitle></DialogHeader>
         <form action={(fd) => {
@@ -62,7 +62,7 @@ export function NewGoalButton({ accounts }: Props) {
           </div>
           <div className="flex justify-end gap-2">
             <Button type="button" variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-            <Button type="submit">Create Goal</Button>
+            <Button type="submit">Create goal</Button>
           </div>
         </form>
       </DialogContent>

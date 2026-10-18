@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { prisma } from '@/lib/prisma'
 import { AccountsTable } from '@/components/accounts-table'
+import { PageHeader } from '@/components/page-header'
 
 export default async function AccountsPage() {
   const supabase = await createClient()
@@ -51,10 +52,8 @@ export default async function AccountsPage() {
   )
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">Accounts</h1>
-      </div>
+    <div className="px-4 py-5 md:px-8 md:py-7 space-y-6">
+      <PageHeader page="accounts" title="Accounts" meta={`${accountsWithBalance.length} account${accountsWithBalance.length === 1 ? '' : 's'}`} />
       <AccountsTable accounts={accountsWithBalance} />
     </div>
   )

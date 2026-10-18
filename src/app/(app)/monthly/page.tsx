@@ -3,6 +3,9 @@ import { prisma } from '@/lib/prisma'
 import { monthlyBreakdown, expectedCumPnL } from '@/lib/goals'
 import { cn } from '@/lib/utils'
 import { formatCurrency } from '@/lib/format'
+import { PageHeader } from '@/components/page-header'
+import { Flap } from '@/components/flap'
+import Link from 'next/link'
 
 export default async function MonthlyPage(props: { searchParams?: Promise<Record<string, string | string[]>> }) {
   const searchParams = await props.searchParams
@@ -39,9 +42,15 @@ export default async function MonthlyPage(props: { searchParams?: Promise<Record
 
   if (!goal) {
     return (
-      <div className="p-6">
-        <h1 className="text-2xl font-semibold mb-4">Monthly Performance</h1>
-        <p className="text-muted-foreground">No goal found. Create a goal on the Goals page first.</p>
+      <div className="px-4 py-5 md:px-8 md:py-7 space-y-7">
+        <PageHeader page="monthly" title="Monthly" />
+        <div className="rounded-lg border border-dashed p-8 max-w-xl space-y-1.5">
+          <p className="text-[15px] font-semibold">No timetable to show</p>
+          <p className="text-[13px] text-muted-foreground">
+            The monthly view breaks a yearly goal into what each month should earn and withdraw.{' '}
+            <Link href="/goals" className="text-primary font-semibold hover:underline">Create a goal</Link> for your main account first.
+          </p>
+        </div>
       </div>
     )
   }
@@ -98,9 +107,18 @@ export default async function MonthlyPage(props: { searchParams?: Promise<Record
   const actualYTD = actualMonthlyPnl.reduce((s, v) => s + v, 0)
   const expectedYTD = isCurrentYear ? expectedCumPnL(g, today) : g.goalAmount
 
-  // Running cumulative totals
-  let cumActual = 0
-  let cumExpected = 0
+  // Running cumulative totals, precomputed per month
+  const cumActualByMonth: number[] = []
+  const cumExpectedByMonth: number[] = []
+  breakdown.reduce(
+    (acc, b, i) => {
+      const next = { a: acc.a + actualMonthlyPnl[i], e: acc.e + b.expectedPnl }
+      cumActualByMonth.push(next.a)
+      cumExpectedByMonth.push(next.e)
+      return next
+    },
+    { a: 0, e: 0 },
+  )
 
   // Totals row — sum non-cumulative columns; skip future months for actuals
   const totalExpectedPnl = breakdown.reduce((s, b) => s + b.expectedPnl, 0)
@@ -118,46 +136,43 @@ export default async function MonthlyPage(props: { searchParams?: Promise<Record
   // Suppress unused variable warning — allGoals is available for future goal selector UI
   void allGoals
 
-  return (
-    <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">Monthly Performance</h1>
-        {/* Goal selector */}
-        <div className="flex items-center gap-2 text-sm">
-          <span className="text-muted-foreground">Viewing:</span>
-          <span className="font-medium">{goal.year} — {goal.account.name}</span>
-        </div>
-      </div>
+  const gapYTD = actualYTD - expectedYTD
+  const signedMoney = (n: number) => `${n > 0 ? '+' : ''}${formatCurrency(n)}`
+  const figures = [
+    { label: 'Goal', value: formatCurrency(g.goalAmount), tone: 'ink' as const },
+    { label: 'Actual YTD', value: `${actualYTD > 0 ? '+' : ''}${formatCurrency(actualYTD)}`, tone: actualYTD >= 0 ? 'gain' as const : 'loss' as const },
+    { label: 'Scheduled YTD', value: formatCurrency(expectedYTD), tone: 'dim' as const },
+    { label: gapYTD >= 0 ? 'Ahead by' : 'Behind by', value: formatCurrency(Math.abs(gapYTD)), tone: gapYTD >= 0 ? 'gain' as const : 'loss' as const },
+  ]
+  const TH = 'px-4 py-2.5 text-right whitespace-nowrap'
+  const TD = 'px-4 py-2.5 text-right whitespace-nowrap'
 
-      {/* KPI cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
-        {[
-          { label: 'Goal Amount', value: `$${g.goalAmount.toLocaleString()}` },
-          { label: 'Actual YTD', value: formatCurrency(actualYTD), color: actualYTD >= 0 ? 'text-green-600' : 'text-red-600' },
-          { label: 'Expected YTD', value: formatCurrency(expectedYTD) },
-          { label: 'Gap', value: `${(actualYTD - expectedYTD) >= 0 ? '+' : ''}${formatCurrency(actualYTD - expectedYTD)}`, color: (actualYTD - expectedYTD) >= 0 ? 'text-green-600' : 'text-red-600' },
-        ].map(({ label, value, color }) => (
-          <div key={label} className="rounded-lg border p-4 space-y-1">
-            <p className="text-xs text-muted-foreground">{label}</p>
-            <p className={cn('text-xl font-semibold', color)}>{value}</p>
+  return (
+    <div className="px-4 py-5 md:px-8 md:py-7 space-y-7">
+      <PageHeader page="monthly" title="Monthly" meta={<>{goal.year} timetable · {goal.account.name}</>} />
+
+      <dl className="board grid grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-4 px-4 md:px-5 py-4">
+        {figures.map((f, i) => (
+          <div key={f.label} className="min-w-0">
+            <dt className="board-label mb-1.5">{f.label}</dt>
+            <dd><Flap id={`monthly:${goal.id}:${f.label}`} value={f.value} tone={f.tone} size="md" delay={i * 40} /></dd>
           </div>
         ))}
-      </div>
+      </dl>
 
-      {/* 12-month breakdown table */}
-      <div className="rounded-md border overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead className="border-b bg-muted/50">
+      <div className="rounded-lg ring-1 ring-border bg-card relative overflow-x-auto">
+        <table className="data-table w-full text-[13px]">
+          <thead className="border-b bg-muted/60">
             <tr>
-              <th className="px-4 py-3 text-left font-medium">Month</th>
-              <th className="px-4 py-3 text-right font-medium">Exp. P&L</th>
-              <th className="px-4 py-3 text-right font-medium">Exp. Fix WD</th>
-              <th className="px-4 py-3 text-right font-medium">Exp. Var WD</th>
-              <th className="px-4 py-3 text-right font-medium">Exp. Total</th>
-              <th className="px-4 py-3 text-right font-medium">Actual P&L</th>
-              <th className="px-4 py-3 text-right font-medium">vs Expected</th>
-              <th className="px-4 py-3 text-right font-medium">Cum. Actual</th>
-              <th className="px-4 py-3 text-right font-medium">Cum. Expected</th>
+              <th className="px-4 py-2.5 text-left">Month</th>
+              <th className={TH}>Sched. P&amp;L</th>
+              <th className={TH}>Fixed WD</th>
+              <th className={TH}>Var. WD</th>
+              <th className={TH}>Sched. total</th>
+              <th className={TH}>Actual P&amp;L</th>
+              <th className={TH}>vs Sched.</th>
+              <th className={TH}>Cum. actual</th>
+              <th className={TH}>Cum. sched.</th>
             </tr>
           </thead>
           <tbody className="divide-y">
@@ -166,59 +181,57 @@ export default async function MonthlyPage(props: { searchParams?: Promise<Record
               const actual = actualMonthlyPnl[i]
               const isFuture = isCurrentYear && i > currentMonth
               const isCurrent = isCurrentYear && i === currentMonth
+              const vs = actual - b.expectedTotal
 
-              cumActual += actual
-              cumExpected += b.expectedPnl
+              const cumActual = cumActualByMonth[i]
+              const cumExpected = cumExpectedByMonth[i]
 
               return (
                 <tr
                   key={month}
+                  aria-current={isCurrent ? 'date' : undefined}
                   className={cn(
-                    isCurrent && 'bg-purple-50 dark:bg-purple-950/20',
-                    isFuture && 'opacity-50'
+                    isCurrent && 'bg-accent',
+                    isFuture && 'text-muted-foreground'
                   )}
                 >
-                  <td className="px-4 py-2.5 font-medium">{MONTH_NAMES[i]}</td>
-                  <td className="px-4 py-2.5 text-right">{formatCurrency(b.expectedPnl)}</td>
-                  <td className="px-4 py-2.5 text-right">{formatCurrency(g.monthlyFixedWd)}</td>
-                  <td className="px-4 py-2.5 text-right">{formatCurrency(b.expectedVarWd)}</td>
-                  <td className="px-4 py-2.5 text-right">{formatCurrency(b.expectedTotal)}</td>
-                  <td className="px-4 py-2.5 text-right">
-                    {isFuture ? <span className="text-muted-foreground">—</span> : (
-                      <span className={actual >= 0 ? 'text-green-600' : 'text-red-600'}>{formatCurrency(actual)}</span>
+                  <td className="px-4 py-2.5 font-semibold whitespace-nowrap">
+                    {MONTH_NAMES[i]}
+                    {isCurrent && (
+                      <span className="ml-2 align-middle rounded-sm bg-primary px-1.5 py-px sign-caps text-[10px] text-primary-foreground">Now</span>
                     )}
                   </td>
-                  <td className="px-4 py-2.5 text-right">
-                    {isFuture
-                      ? <span className="text-xs bg-muted rounded px-1 py-0.5">future</span>
-                      : <span className={(actual - b.expectedTotal) >= 0 ? 'text-green-600' : 'text-red-600'}>
-                          {(actual - b.expectedTotal) >= 0 ? '+' : ''}{formatCurrency(actual - b.expectedTotal)}
-                        </span>
-                    }
+                  <td className={TD}>{formatCurrency(b.expectedPnl)}</td>
+                  <td className={TD}>{formatCurrency(g.monthlyFixedWd)}</td>
+                  <td className={TD}>{formatCurrency(b.expectedVarWd)}</td>
+                  <td className={cn(TD, 'font-medium')}>{formatCurrency(b.expectedTotal)}</td>
+                  <td className={TD}>
+                    {isFuture ? '—' : (
+                      <span className={cn('font-semibold', actual >= 0 ? 'text-gain' : 'text-loss')}>{formatCurrency(actual)}</span>
+                    )}
                   </td>
-                  <td className="px-4 py-2.5 text-right font-mono">
-                    {isFuture ? '—' : formatCurrency(cumActual)}
+                  <td className={TD}>
+                    {isFuture ? '—' : (
+                      <span className={vs >= 0 ? 'text-gain' : 'text-loss'}>{signedMoney(vs)}</span>
+                    )}
                   </td>
-                  <td className="px-4 py-2.5 text-right font-mono">{formatCurrency(cumExpected)}</td>
+                  <td className={TD}>{isFuture ? '—' : formatCurrency(cumActual)}</td>
+                  <td className={cn(TD, 'text-muted-foreground')}>{formatCurrency(cumExpected)}</td>
                 </tr>
               )
             })}
           </tbody>
-          <tfoot className="border-t bg-muted/50">
+          <tfoot className="border-t-2 border-foreground/15 bg-muted/60">
             <tr className="font-semibold">
-              <td className="px-4 py-2.5 text-muted-foreground">Total</td>
-              <td className="px-4 py-2.5 text-right">{formatCurrency(totalExpectedPnl)}</td>
-              <td className="px-4 py-2.5 text-right">{formatCurrency(totalFixedWd)}</td>
-              <td className="px-4 py-2.5 text-right">{formatCurrency(totalVarWd)}</td>
-              <td className="px-4 py-2.5 text-right">{formatCurrency(totalExpectedTotal)}</td>
-              <td className={cn('px-4 py-2.5 text-right', totalActual >= 0 ? 'text-green-600' : 'text-red-600')}>
-                {formatCurrency(totalActual)}
-              </td>
-              <td className={cn('px-4 py-2.5 text-right', totalVsExpected >= 0 ? 'text-green-600' : 'text-red-600')}>
-                {totalVsExpected >= 0 ? '+' : ''}{formatCurrency(totalVsExpected)}
-              </td>
-              <td className="px-4 py-2.5 text-right text-muted-foreground">—</td>
-              <td className="px-4 py-2.5 text-right text-muted-foreground">—</td>
+              <td className="px-4 py-3 sign-caps text-[11px] text-muted-foreground">Year</td>
+              <td className={TD}>{formatCurrency(totalExpectedPnl)}</td>
+              <td className={TD}>{formatCurrency(totalFixedWd)}</td>
+              <td className={TD}>{formatCurrency(totalVarWd)}</td>
+              <td className={TD}>{formatCurrency(totalExpectedTotal)}</td>
+              <td className={cn(TD, totalActual >= 0 ? 'text-gain' : 'text-loss')}>{formatCurrency(totalActual)}</td>
+              <td className={cn(TD, totalVsExpected >= 0 ? 'text-gain' : 'text-loss')}>{signedMoney(totalVsExpected)}</td>
+              <td className={cn(TD, 'text-muted-foreground')}>—</td>
+              <td className={cn(TD, 'text-muted-foreground')}>—</td>
             </tr>
           </tfoot>
         </table>

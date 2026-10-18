@@ -3,12 +3,15 @@ import { prisma } from "@/lib/prisma";
 import { calcOpenRisk } from "@/lib/trades";
 import { expectedCumPnL, monthlyBreakdown } from "@/lib/goals";
 import { EquityChart, type EquityDataPoint } from "@/components/equity-chart";
-import { cn } from "@/lib/utils";
 import Link from "next/link";
 import {
   DashboardOpenPositions,
+  type BoardTotal,
   type DashboardPosition,
 } from "@/components/dashboard-open-positions";
+import { PageHeader, SectionTitle } from "@/components/page-header";
+import { GoalTimetable } from "@/components/goal-timetable";
+import { formatCurrency } from "@/lib/format";
 import { DashboardCalendar } from "@/components/dashboard-calendar";
 import { AddTradeButton } from "@/components/add-trade-button";
 
@@ -27,14 +30,6 @@ const MONTH_LABELS = [
   "Dec",
 ];
 
-function fmt(n: number, opts?: Intl.NumberFormatOptions) {
-  return n.toLocaleString(undefined, {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-    ...opts,
-  });
-}
-
 export default async function DashboardPage() {
   const supabase = await createClient();
   const {
@@ -48,12 +43,15 @@ export default async function DashboardPage() {
 
   if (!mainAccount) {
     return (
-      <div className="p-6 space-y-4">
-        <h1 className="text-2xl font-semibold">Dashboard</h1>
-        <div className="rounded-lg border p-6 text-center text-muted-foreground">
-          No main account set.{" "}
-          <Link href="/accounts" className="text-primary hover:underline">
-            Set one in Accounts →
+      <div className="px-4 py-5 md:px-8 md:py-7 space-y-8">
+        <PageHeader page="dashboard" title="Dashboard" />
+        <div className="board px-5 py-6 max-w-xl space-y-2">
+          <p className="font-heading text-[15px] font-semibold uppercase tracking-[0.1em] text-flap-yellow">No main account</p>
+          <p className="text-[14px] text-flap-dim">
+            The board reads one account. Mark an account as main and its open positions, P&amp;L, and goal will post here.
+          </p>
+          <Link href="/accounts" className="inline-block pt-1 text-[14px] font-semibold text-flap-ink underline hover:text-flap-yellow">
+            Choose a main account
           </Link>
         </div>
       </div>
@@ -215,228 +213,102 @@ export default async function DashboardPage() {
 
   const breakdown = g ? monthlyBreakdown(g) : null;
 
-  const equityData: EquityDataPoint[] = MONTH_LABELS.map((label, i) => {
+  const equityData: EquityDataPoint[] = [];
+  for (let i = 0; i < 12; i++) {
     cumActual += actualMonthlyPnl[i];
     if (breakdown) cumExpected += breakdown[i].expectedPnl;
-    return {
-      month: label,
-      actual: cumActual,
+    equityData.push({
+      month: MONTH_LABELS[i],
+      // The equity line stops at the current month; the timetable runs on.
+      actual: i <= currentMonth ? cumActual : null,
       expected: breakdown ? cumExpected : null,
-    };
-  });
+    });
+  }
 
   // Goal progress — yearly
   const goalExpectedYTD = g ? expectedCumPnL(g, today) : 0;
   const goalAmount = g?.goalAmount ?? 0;
-  const goalActualPct =
-    goalAmount > 0 ? Math.max(0, Math.min(1, ytdPnl / goalAmount)) * 100 : 0;
-  const goalExpectedPct =
-    goalAmount > 0
-      ? Math.max(0, Math.min(1, goalExpectedYTD / goalAmount)) * 100
-      : 0;
-
   // Goal progress — current month
   const monthExpected = breakdown ? breakdown[currentMonth].expectedPnl : 0;
-  const monthGap = monthlyPnl - monthExpected;
-  const monthActualPct =
-    monthExpected > 0
-      ? Math.max(0, Math.min(1, monthlyPnl / monthExpected)) * 100
-      : 0;
+  // Money on the board carries cents, matching the tables and calendar.
+  const signedMoney = (n: number) => `${n > 0 ? "+" : ""}${formatCurrency(n)}`;
+  const projTotal = openPositions.reduce((s, t) => s + (t.projectedProfit ?? 0), 0);
 
-  const kpis = [
+  const totals: BoardTotal[] = [
     {
-      title: "Monthly P&L",
-      value: `${monthlyPnl >= 0 ? "+" : ""}$${fmt(monthlyPnl)}`,
-      valueClass: monthlyPnl >= 0 ? "text-emerald-600" : "text-rose-600",
+      label: `${MONTH_LABELS[currentMonth]} P&L`,
+      value: signedMoney(monthlyPnl),
+      tone: monthlyPnl > 0 ? "gain" : monthlyPnl < 0 ? "loss" : "dim",
     },
     {
-      title: "Win Rate (YTD)",
+      label: "YTD return",
+      value: `${pctReturn > 0 ? "+" : ""}${pctReturn.toFixed(2)}%`,
+      tone: pctReturn > 0 ? "gain" : pctReturn < 0 ? "loss" : "dim",
+    },
+    {
+      label: `Win rate · ${winningTrades}/${ytdTrades.length}`,
       value: `${winRate.toFixed(1)}%`,
-      sub: `${winningTrades} / ${ytdTrades.length} trades`,
-      valueClass: "",
     },
+    { label: "Open risk", value: formatCurrency(openRisk), tone: "yellow" },
     {
-      title: "Open Risk",
-      value: `$${fmt(openRisk)}`,
-      valueClass: "text-amber-600",
-    },
-    {
-      title: "% Return (YTD)",
-      value: `${pctReturn >= 0 ? "+" : ""}${pctReturn.toFixed(2)}%`,
-      valueClass: pctReturn >= 0 ? "text-emerald-600" : "text-rose-600",
+      label: "Projected premium",
+      value: signedMoney(projTotal),
+      tone: projTotal > 0 ? "gain" : projTotal < 0 ? "loss" : "dim",
     },
   ];
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">Dashboard</h1>
-        <AddTradeButton accounts={accounts} setups={setups} />
-      </div>
+    <div className="px-4 py-5 md:px-8 md:py-7 space-y-8">
+      <PageHeader
+        page="dashboard"
+        title="Dashboard"
+        meta={<>{mainAccount.name} · {MONTH_LABELS[currentMonth]} {currentYear}</>}
+        actions={<AddTradeButton accounts={accounts} setups={setups} />}
+      />
 
-      {/* KPI cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        {kpis.map(({ title, value, sub, valueClass }) => (
-          <div key={title} className="rounded-lg border px-4 py-3 space-y-0.5">
-            <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">
-              {title}
-            </p>
-            <span
-              className={cn("text-xl font-semibold tabular-nums", valueClass)}
-            >
-              {value}
-            </span>
-            {sub && (
-              <span className="text-[11px] text-muted-foreground ml-3">
-                {sub}
-              </span>
-            )}
-          </div>
-        ))}
-      </div>
+      <DashboardOpenPositions
+        positions={openPositions}
+        totals={totals}
+        accounts={accounts}
+        setups={setups}
+      />
 
-      {/* Chart row */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        {/* Equity chart */}
-        <div className="lg:col-span-2 rounded-lg border p-4">
-          <h2 className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-4">
+      <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1.7fr)_minmax(0,1fr)] gap-x-10 gap-y-8">
+        <section className="space-y-4 min-w-0">
+          <SectionTitle aside={`Starting balance ${formatCurrency(startingBalance)}`}>
             Equity {currentYear}
-          </h2>
+          </SectionTitle>
           <EquityChart data={equityData} />
-        </div>
+        </section>
 
-        {/* Right column */}
-        <div className="space-y-4">
-          {/* Current month goal */}
+        <section aria-label="Goal" className="min-w-0 xl:border-l xl:pl-10">
           {goal && breakdown ? (
-            <div className="rounded-lg border p-4 space-y-3">
-              <h2 className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                {MONTH_LABELS[currentMonth]} Goal
-              </h2>
-              <div className="grid grid-cols-3 gap-2 text-center text-xs">
-                <div>
-                  <p className="text-muted-foreground mb-0.5">Actual</p>
-                  <p
-                    className={cn(
-                      "font-semibold text-sm tabular-nums",
-                      monthlyPnl >= 0 ? "text-emerald-600" : "text-rose-600",
-                    )}
-                  >
-                    {monthlyPnl >= 0 ? "+" : ""}${fmt(monthlyPnl)}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-muted-foreground mb-0.5">Expected</p>
-                  <p className="font-semibold text-sm tabular-nums">
-                    ${fmt(monthExpected)}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-muted-foreground mb-0.5">Gap</p>
-                  <p
-                    className={cn(
-                      "font-semibold text-sm tabular-nums",
-                      monthGap >= 0 ? "text-emerald-600" : "text-rose-600",
-                    )}
-                  >
-                    {monthGap >= 0 ? "+" : ""}${fmt(monthGap)}
-                  </p>
-                </div>
-              </div>
-              {monthExpected > 0 && (
-                <div className="space-y-1 text-xs text-muted-foreground">
-                  <div className="flex items-center gap-2">
-                    <div className="flex-1 bg-muted rounded-full h-1.5 overflow-hidden">
-                      <div
-                        className="bg-blue-400 h-full rounded-full transition-all"
-                        style={{ width: `${Math.min(100, monthActualPct)}%` }}
-                      />
-                    </div>
-                    <span className="w-8 text-right tabular-nums">
-                      {monthActualPct.toFixed(0)}%
-                    </span>
-                  </div>
-                </div>
-              )}
-            </div>
-          ) : null}
-
-          {/* Yearly goal progress */}
-          {goal ? (
-            <div className="rounded-lg border p-4 space-y-3">
-              <h2 className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                Year Goal
-              </h2>
-              <div className="space-y-2.5 text-xs text-muted-foreground">
-                <div className="flex items-center gap-2">
-                  <span className="w-16 shrink-0">Actual</span>
-                  <div className="flex-1 bg-muted rounded-full h-1.5 overflow-hidden">
-                    <div
-                      className="bg-emerald-500 h-full rounded-full transition-all"
-                      style={{ width: `${goalActualPct}%` }}
-                    />
-                  </div>
-                  <span className="w-10 text-right tabular-nums">
-                    {goalActualPct.toFixed(0)}%
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="w-16 shrink-0">Expected</span>
-                  <div className="flex-1 bg-muted rounded-full h-1.5 overflow-hidden">
-                    <div
-                      className="bg-blue-400 h-full rounded-full transition-all"
-                      style={{ width: `${goalExpectedPct}%` }}
-                    />
-                  </div>
-                  <span className="w-10 text-right tabular-nums">
-                    {goalExpectedPct.toFixed(0)}%
-                  </span>
-                </div>
-              </div>
-              <div className="text-xs text-muted-foreground flex justify-between pt-0.5">
-                <span className="tabular-nums">
-                  ${fmt(ytdPnl)} of ${goalAmount.toLocaleString()}
-                </span>
-                <Link href="/monthly" className="text-primary hover:underline">
-                  Details →
-                </Link>
-              </div>
-            </div>
+            <GoalTimetable
+              year={currentYear}
+              monthIndex={currentMonth}
+              monthLabel={MONTH_LABELS[currentMonth]}
+              monthActual={monthlyPnl}
+              monthExpected={monthExpected}
+              ytdActual={ytdPnl}
+              ytdExpected={goalExpectedYTD}
+              goalAmount={goalAmount}
+              curveFactor={g?.curveFactor ?? 1}
+            />
           ) : (
-            <div className="rounded-lg border p-4 text-center text-sm text-muted-foreground">
-              <p>No goal for {currentYear}.</p>
-              <Link
-                href="/goals"
-                className="text-primary hover:underline text-xs"
-              >
-                Create one →
+            <div className="rounded-lg border border-dashed p-5 space-y-2">
+              <h2 className="text-[17px] font-semibold">No timetable for {currentYear}</h2>
+              <p className="text-[13px] text-muted-foreground">
+                Set a yearly income goal and the dashboard will show whether the book runs ahead of or behind it, month by month.
+              </p>
+              <Link href="/goals" className="inline-block text-[13px] font-semibold text-primary hover:underline">
+                Create a {currentYear} goal
               </Link>
             </div>
           )}
-        </div>
+        </section>
       </div>
 
-      {/* Open positions — full width */}
-      <div className="rounded-lg border p-4 space-y-3">
-        <h2 className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-          Open Positions
-        </h2>
-        <DashboardOpenPositions
-          positions={openPositions}
-          projProfitTotal={openPositions.reduce(
-            (s, t) => s + (t.projectedProfit ?? 0),
-            0,
-          )}
-          accounts={accounts}
-          setups={setups}
-        />
-      </div>
-
-      {/* Calendar */}
-      <div className="rounded-lg border p-4">
-        <h2 className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-4">
-          Calendar
-        </h2>
+      <section>
         <DashboardCalendar
           trades={closedTrades.map((t) => ({
             id: t.id,
@@ -446,7 +318,7 @@ export default async function DashboardPage() {
           initialMonth={currentMonth + 1}
           initialYear={currentYear}
         />
-      </div>
+      </section>
     </div>
   );
 }

@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { prisma } from '@/lib/prisma'
 import { SetupsSection } from '@/components/setups-section'
 import { TSSection } from '@/components/ts-section'
+import { PageHeader, SectionTitle } from '@/components/page-header'
 
 export default async function SystemPage() {
   const supabase = await createClient()
@@ -17,16 +18,16 @@ export default async function SystemPage() {
   const lastSynced = tsToken?.updatedAt ?? null
 
   return (
-    <div className="p-6 space-y-8">
-      <h1 className="text-2xl font-semibold">System</h1>
+    <div className="px-4 py-5 md:px-8 md:py-7 space-y-9 max-w-4xl">
+      <PageHeader page="system" title="System" meta="Connections and trade tags" />
 
-      <section className="space-y-4">
-        <h2 className="text-lg font-medium">TradeStation Integration</h2>
+      <section className="space-y-3">
+        <SectionTitle>TradeStation</SectionTitle>
         <TSSection isConnected={isConnected} lastSynced={lastSynced} />
       </section>
 
-      <section className="space-y-4">
-        <h2 className="text-lg font-medium">Trade Setups</h2>
+      <section className="space-y-3">
+        <SectionTitle>Trade setups</SectionTitle>
         <SetupsSection setups={setups} />
       </section>
     </div>

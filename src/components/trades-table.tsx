@@ -59,7 +59,9 @@ import { CloseTradeDialog } from "@/components/close-trade-dialog";
 import { RollTradeDialog } from "@/components/roll-trade-dialog";
 import { DatePicker } from "@/components/date-picker";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { UnfoldMoreIcon } from "@hugeicons/core-free-icons";
+import { MoreHorizontalIcon, Search01Icon, UnfoldMoreIcon } from "@hugeicons/core-free-icons";
+import { formatCurrency } from "@/lib/format";
+import { cn } from "@/lib/utils";
 
 export type TableTrade = {
   id: string;
@@ -115,6 +117,9 @@ function fmtDate(d: Date | string) {
   });
 }
 
+// Numeric columns align right so figures stack by place value.
+const NUMERIC = new Set(["days", "daysOpen", "quantity", "entryPrice", "exitPrice", "netPnl", "projectedProfit"]);
+
 function daysSince(d: Date) {
   return Math.floor((Date.now() - new Date(d).getTime()) / 86_400_000);
 }
@@ -143,7 +148,7 @@ function SkeletonRows({ cols }: { cols: number }) {
       {Array.from({ length: 6 }).map((_, i) => (
         <tr key={i} className="border-b">
           {Array.from({ length: cols }).map((_, j) => (
-            <td key={j} className="px-3 py-2.5">
+            <td key={j} className="px-3 py-3">
               <Skeleton className="h-4 w-full" />
             </td>
           ))}
@@ -228,7 +233,7 @@ export function TradesTable({
       accessorKey: "ticker",
       header: "Ticker",
       cell: ({ getValue }) => (
-        <span className="font-mono">{getValue() as string}</span>
+        <span className="font-mono text-[15px] font-semibold tracking-[0.02em]">{getValue() as string}</span>
       ),
     },
     {
@@ -236,7 +241,7 @@ export function TradesTable({
       header: "Symbol",
       size: 180,
       cell: ({ getValue }) => (
-        <span className="font-mono text-xs">{getValue() as string}</span>
+        <span className="font-mono text-[13px] text-muted-foreground">{getValue() as string}</span>
       ),
     },
     {
@@ -262,12 +267,8 @@ export function TradesTable({
         const v = getValue() as number | null;
         if (v == null) return "—";
         return (
-          <span
-            className={
-              v >= 0 ? "text-green-600 font-medium" : "text-red-600 font-medium"
-            }
-          >
-            ${fmt(v)}
+          <span className={cn("font-semibold", v >= 0 ? "text-gain" : "text-loss")}>
+            {v > 0 ? "+" : ""}{formatCurrency(v)}
           </span>
         );
       },
@@ -291,7 +292,7 @@ export function TradesTable({
       header: "Setups",
       cell: ({ row }) =>
         row.original.tradeSetups.map((ts) => (
-          <Badge key={ts.setupId} variant="outline" className="mr-1 text-xs">
+          <Badge key={ts.setupId} variant="outline" className="mr-1">
             {ts.setup.name}
           </Badge>
         )),
@@ -301,7 +302,7 @@ export function TradesTable({
       header: "Source",
       cell: ({ getValue }) =>
         getValue() === "TS_IMPORT" ? (
-          <Badge className="bg-blue-500 text-white text-xs">TS</Badge>
+          <Badge title="Imported from TradeStation">TS</Badge>
         ) : null,
     },
   ];
@@ -322,7 +323,7 @@ export function TradesTable({
       accessorKey: "ticker",
       header: "Ticker",
       cell: ({ getValue }) => (
-        <span className="font-mono">{getValue() as string}</span>
+        <span className="font-mono text-[15px] font-semibold tracking-[0.02em]">{getValue() as string}</span>
       ),
     },
     {
@@ -330,7 +331,7 @@ export function TradesTable({
       header: "Symbol",
       size: 180,
       cell: ({ getValue }) => (
-        <span className="font-mono text-xs">{getValue() as string}</span>
+        <span className="font-mono text-[13px] text-muted-foreground">{getValue() as string}</span>
       ),
     },
     {
@@ -346,8 +347,11 @@ export function TradesTable({
     {
       accessorKey: "projectedProfit",
       header: "Proj. Profit",
-      cell: ({ getValue }) =>
-        getValue() ? `$${fmt(getValue() as number)}` : "—",
+      cell: ({ getValue }) => {
+        const v = getValue() as number | null;
+        if (!v) return <span className="text-muted-foreground">—</span>;
+        return <span className={v >= 0 ? "text-gain" : "text-loss"}>{v > 0 ? "+" : ""}{formatCurrency(v)}</span>;
+      },
     },
     {
       accessorKey: "side",
@@ -368,7 +372,7 @@ export function TradesTable({
       header: "Setups",
       cell: ({ row }) =>
         row.original.tradeSetups.map((ts) => (
-          <Badge key={ts.setupId} variant="outline" className="mr-1 text-xs">
+          <Badge key={ts.setupId} variant="outline" className="mr-1">
             {ts.setup.name}
           </Badge>
         )),
@@ -402,6 +406,12 @@ export function TradesTable({
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-2 flex-wrap">
+        <div className="relative w-full max-w-xs">
+          <HugeiconsIcon
+            icon={Search01Icon}
+            size={15}
+            className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground"
+          />
         <Input
           placeholder="Search ticker, name, symbol…"
           value={searchValue}
@@ -412,14 +422,16 @@ export function TradesTable({
               navigate({ q: e.target.value, page: 1 }, true);
             }, 300);
           }}
-          className="max-w-xs"
+          className="pl-8"
+          aria-label="Search trades"
         />
+        </div>
 
         {/* Ticker filter — styled like a Select */}
         {availableTickers.length > 0 && (
           <Popover>
             <PopoverTrigger asChild>
-              <button className="flex h-7 items-center gap-1.5 rounded-md border border-input bg-input/20 px-2 text-xs/relaxed whitespace-nowrap transition-colors outline-none hover:bg-input/30 focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/30 dark:bg-input/30">
+              <button className="flex h-8 items-center gap-1.5 rounded-md border border-input bg-card px-3 text-[13px] font-semibold whitespace-nowrap transition-colors outline-none hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 dark:bg-input/10">
                 {selectedTickers.length > 0
                   ? `${selectedTickers.length} ticker${selectedTickers.length > 1 ? "s" : ""}`
                   : "Tickers"}
@@ -435,13 +447,13 @@ export function TradesTable({
                 {availableTickers.map((ticker) => (
                   <label
                     key={ticker}
-                    className="flex items-center gap-2 px-1 py-1 rounded hover:bg-muted cursor-pointer text-sm"
+                    className="flex items-center gap-2 px-1.5 py-1 rounded-sm hover:bg-accent cursor-pointer text-[13px]"
                   >
                     <Checkbox
                       checked={selectedTickers.includes(ticker)}
                       onCheckedChange={() => toggleTicker(ticker)}
                     />
-                    <span className="font-mono">{ticker}</span>
+                    <span className="font-mono text-[14px] font-semibold">{ticker}</span>
                   </label>
                 ))}
               </div>
@@ -473,7 +485,7 @@ export function TradesTable({
           <PopoverContent className="w-72 p-2" align="start">
             <div className="grid grid-cols-2 gap-2">
               <div className="space-y-1">
-                <p className="text-xs font-medium text-muted-foreground">
+                <p className="sign-caps text-[11px] text-muted-foreground">
                   From
                 </p>
                 <DatePicker
@@ -481,17 +493,17 @@ export function TradesTable({
                   value={dateFrom || undefined}
                   onValueChange={(v) => navigate({ dateFrom: v, page: 1 })}
                   placeholder="Start"
-                  className="h-7 text-xs"
+                  className="h-8 text-[13px]"
                 />
               </div>
               <div className="space-y-1">
-                <p className="text-xs font-medium text-muted-foreground">To</p>
+                <p className="sign-caps text-[11px] text-muted-foreground">To</p>
                 <DatePicker
                   name="dateTo"
                   value={dateTo || undefined}
                   onValueChange={(v) => navigate({ dateTo: v, page: 1 })}
                   placeholder="End"
-                  className="h-7 text-xs"
+                  className="h-8 text-[13px]"
                 />
               </div>
             </div>
@@ -511,16 +523,27 @@ export function TradesTable({
         )}
       </div>
 
-      <div className="rounded-md border overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead className="border-b bg-muted/50">
+      <div className="rounded-lg ring-1 ring-border bg-card relative overflow-x-auto">
+        <table className="data-table w-full text-[13px]">
+          <thead className="border-b bg-muted/60">
             {table.getHeaderGroups().map((hg) => (
               <tr key={hg.id}>
                 {hg.headers.map((header) => (
                   <th
                     key={header.id}
-                    className="px-3 py-2 text-left font-medium cursor-pointer select-none whitespace-nowrap"
+                    className={cn(
+                      "px-3 py-2.5 text-left cursor-pointer select-none whitespace-nowrap hover:text-foreground",
+                      NUMERIC.has(header.column.id) && "text-right",
+                      header.column.getIsSorted() && "text-foreground",
+                    )}
                     onClick={header.column.getToggleSortingHandler()}
+                    aria-sort={
+                      header.column.getIsSorted() === "asc"
+                        ? "ascending"
+                        : header.column.getIsSorted() === "desc"
+                          ? "descending"
+                          : undefined
+                    }
                   >
                     {flexRender(
                       header.column.columnDef.header,
@@ -531,8 +554,8 @@ export function TradesTable({
                     ] ?? ""}
                   </th>
                 ))}
-                <th className="px-3 py-2 text-right font-medium w-10">
-                  Actions
+                <th className="px-3 py-2.5 w-10">
+                  <span className="sr-only">Actions</span>
                 </th>
               </tr>
             ))}
@@ -545,25 +568,31 @@ export function TradesTable({
                 {table.getRowModel().rows.map((row) => (
                   <tr
                     key={row.id}
-                    className="hover:bg-muted/30 transition-colors"
+                    className="hover:bg-accent/60 transition-colors"
                   >
                     {row.getVisibleCells().map((cell) => (
-                      <td key={cell.id} className="px-3 py-2 whitespace-nowrap">
+                      <td
+                        key={cell.id}
+                        className={cn(
+                          "px-3 py-2 whitespace-nowrap",
+                          NUMERIC.has(cell.column.id) && "text-right",
+                        )}
+                      >
                         {flexRender(
                           cell.column.columnDef.cell,
                           cell.getContext(),
                         )}
                       </td>
                     ))}
-                    <td className="px-3 py-2 text-right">
+                    <td className="px-2 py-1 text-right">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button
-                            size="sm"
+                            size="icon-sm"
                             variant="ghost"
-                            className="h-7 w-7 p-0"
+                            aria-label={`Actions for ${row.original.ticker}`}
                           >
-                            ···
+                            <HugeiconsIcon icon={MoreHorizontalIcon} size={17} />
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
@@ -602,9 +631,13 @@ export function TradesTable({
                   <tr>
                     <td
                       colSpan={columns.length + 1}
-                      className="px-4 py-8 text-center text-muted-foreground"
+                      className="px-4 py-12 text-center text-muted-foreground"
                     >
-                      No trades
+                      {activeFilterCount > 0 || searchValue
+                        ? "No trades match these filters."
+                        : variant === "open"
+                          ? "No open trades. Add one, or import a QFX file."
+                          : "No closed trades yet."}
                     </td>
                   </tr>
                 )}
@@ -612,38 +645,32 @@ export function TradesTable({
             )}
           </tbody>
           {variant === "open" && total > 0 && (
-            <tfoot className="border-t bg-muted/30">
+            <tfoot className="border-t bg-muted/60">
               <tr>
                 <td
                   colSpan={7}
-                  className="px-3 py-2 text-right text-sm font-medium text-muted-foreground"
+                  className="px-3 py-2.5 text-right sign-caps text-[11px] text-muted-foreground"
                 >
-                  Total Proj. Profit
+                  Total projected
                 </td>
-                <td className="px-3 py-2 text-right text-sm font-medium">
-                  ${fmt(pageTotalProjProfit)}
+                <td className={cn("px-3 py-2.5 text-right font-semibold", pageTotalProjProfit >= 0 ? "text-gain" : "text-loss")}>
+                  {pageTotalProjProfit > 0 ? "+" : ""}{formatCurrency(pageTotalProjProfit)}
                 </td>
                 <td colSpan={4}></td>
               </tr>
             </tfoot>
           )}
           {variant !== "open" && total > 0 && (
-            <tfoot className="border-t bg-muted/30">
+            <tfoot className="border-t bg-muted/60">
               <tr>
                 <td
                   colSpan={9}
-                  className="px-3 py-2 text-right text-sm font-medium text-muted-foreground"
+                  className="px-3 py-2.5 text-right sign-caps text-[11px] text-muted-foreground"
                 >
-                  Total Net P&L
+                  Total net P&amp;L
                 </td>
-                <td className="px-3 py-2 text-right text-sm font-medium">
-                  <span
-                    className={
-                      pageTotalNetPnl >= 0 ? "text-green-600" : "text-red-600"
-                    }
-                  >
-                    ${fmt(pageTotalNetPnl)}
-                  </span>
+                <td className={cn("px-3 py-2.5 text-right font-semibold", pageTotalNetPnl >= 0 ? "text-gain" : "text-loss")}>
+                  {pageTotalNetPnl > 0 ? "+" : ""}{formatCurrency(pageTotalNetPnl)}
                 </td>
                 <td colSpan={5}></td>
               </tr>
@@ -654,7 +681,7 @@ export function TradesTable({
 
       {total > 0 && (
         <div className="flex items-center gap-2">
-          <span className="text-xs text-muted-foreground">Rows</span>
+          <span className="text-[13px] text-muted-foreground">Rows</span>
           <Select
             value={String(perPage)}
             onValueChange={(v) => navigate({ perPage: v, page: 1 })}
@@ -670,8 +697,8 @@ export function TradesTable({
               ))}
             </SelectContent>
           </Select>
-          {`|`}
-          <p className="text-xs text-muted-foreground">
+          <span aria-hidden className="h-4 w-px bg-border mx-1" />
+          <p className="text-[13px] text-muted-foreground tabular-nums">
             {total.toLocaleString()} total
           </p>
           {totalPages > 1 && (
@@ -810,7 +837,7 @@ export function TradesTable({
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              className="bg-loss text-white hover:bg-loss/90"
               onClick={async () => {
                 if (deletingTrade) await deleteTrade(deletingTrade.id);
                 setDeletingTrade(null);

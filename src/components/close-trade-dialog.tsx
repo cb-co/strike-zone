@@ -123,7 +123,7 @@ export function CloseTradeDialog({ open, onOpenChange, trade, assignmentFee = 0 
           {pnl !== null && (
             <div className="rounded-md border px-3 py-2 text-xs flex justify-between">
               <span className="text-muted-foreground">Est. P&L</span>
-              <span className={`font-mono font-medium ${pnl >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+              <span className={`font-mono font-medium ${pnl >= 0 ? 'text-gain' : 'text-loss'}`}>
                 {pnl >= 0 ? '+' : ''}${pnl.toFixed(2)}
               </span>
             </div>
