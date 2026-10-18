@@ -13,7 +13,7 @@ export function AddTradeButton({ accounts, setups }: Props) {
   const [open, setOpen] = useState(false)
   return (
     <>
-      <Button onClick={() => setOpen(true)}>Add Trade</Button>
+      <Button onClick={() => setOpen(true)}>Add trade</Button>
       <TradeForm key={open ? 'open' : 'closed'} open={open} onOpenChange={setOpen} accounts={accounts} setups={setups} />
     </>
   )

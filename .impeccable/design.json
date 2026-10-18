@@ -1,0 +1,908 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-09-30T01:32:16.655Z",
+  "title": "Design System: Strike Zone",
+  "extensions": {
+    "colorMeta": {
+      "concourse-floor": {
+        "role": "neutral",
+        "displayName": "Concourse Floor",
+        "canonical": "oklch(0.953 0.004 240)",
+        "tonalRamp": [
+          "oklch(0.15 0.002 240)",
+          "oklch(0.26 0.004 240)",
+          "oklch(0.37 0.004 240)",
+          "oklch(0.48 0.004 240)",
+          "oklch(0.6 0.004 240)",
+          "oklch(0.72 0.004 240)",
+          "oklch(0.84 0.004 240)",
+          "oklch(0.95 0.002 240)"
+        ]
+      },
+      "enamel-panel": {
+        "role": "neutral",
+        "displayName": "Enamel Panel",
+        "canonical": "oklch(0.99 0.002 240)",
+        "tonalRamp": [
+          "oklch(0.15 0.001 240)",
+          "oklch(0.26 0.002 240)",
+          "oklch(0.37 0.002 240)",
+          "oklch(0.48 0.002 240)",
+          "oklch(0.6 0.002 240)",
+          "oklch(0.72 0.002 240)",
+          "oklch(0.84 0.002 240)",
+          "oklch(0.95 0.001 240)"
+        ]
+      },
+      "station-ink": {
+        "role": "neutral",
+        "displayName": "Station Ink",
+        "canonical": "oklch(0.2 0.018 262)",
+        "tonalRamp": [
+          "oklch(0.15 0.009 262)",
+          "oklch(0.26 0.018 262)",
+          "oklch(0.37 0.018 262)",
+          "oklch(0.48 0.018 262)",
+          "oklch(0.6 0.018 262)",
+          "oklch(0.72 0.018 262)",
+          "oklch(0.84 0.018 262)",
+          "oklch(0.95 0.009 262)"
+        ]
+      },
+      "platform-grey": {
+        "role": "neutral",
+        "displayName": "Platform Grey",
+        "canonical": "oklch(0.925 0.006 240)",
+        "tonalRamp": [
+          "oklch(0.15 0.003 240)",
+          "oklch(0.26 0.006 240)",
+          "oklch(0.37 0.006 240)",
+          "oklch(0.48 0.006 240)",
+          "oklch(0.6 0.006 240)",
+          "oklch(0.72 0.006 240)",
+          "oklch(0.84 0.006 240)",
+          "oklch(0.95 0.003 240)"
+        ]
+      },
+      "timetable-grey": {
+        "role": "neutral",
+        "displayName": "Timetable Grey",
+        "canonical": "oklch(0.46 0.02 255)",
+        "tonalRamp": [
+          "oklch(0.15 0.010 255)",
+          "oklch(0.26 0.020 255)",
+          "oklch(0.37 0.020 255)",
+          "oklch(0.48 0.020 255)",
+          "oklch(0.6 0.020 255)",
+          "oklch(0.72 0.020 255)",
+          "oklch(0.84 0.020 255)",
+          "oklch(0.95 0.010 255)"
+        ]
+      },
+      "hover-wash": {
+        "role": "neutral",
+        "displayName": "Hover Wash",
+        "canonical": "oklch(0.925 0.018 250)",
+        "tonalRamp": [
+          "oklch(0.15 0.009 250)",
+          "oklch(0.26 0.018 250)",
+          "oklch(0.37 0.018 250)",
+          "oklch(0.48 0.018 250)",
+          "oklch(0.6 0.018 250)",
+          "oklch(0.72 0.018 250)",
+          "oklch(0.84 0.018 250)",
+          "oklch(0.95 0.009 250)"
+        ]
+      },
+      "hairline": {
+        "role": "neutral",
+        "displayName": "Hairline",
+        "canonical": "oklch(0.87 0.008 245)",
+        "tonalRamp": [
+          "oklch(0.15 0.004 245)",
+          "oklch(0.26 0.008 245)",
+          "oklch(0.37 0.008 245)",
+          "oklch(0.48 0.008 245)",
+          "oklch(0.6 0.008 245)",
+          "oklch(0.72 0.008 245)",
+          "oklch(0.84 0.008 245)",
+          "oklch(0.95 0.004 245)"
+        ]
+      },
+      "field-edge": {
+        "role": "neutral",
+        "displayName": "Field Edge",
+        "canonical": "oklch(0.8 0.012 250)",
+        "tonalRamp": [
+          "oklch(0.15 0.006 250)",
+          "oklch(0.26 0.012 250)",
+          "oklch(0.37 0.012 250)",
+          "oklch(0.48 0.012 250)",
+          "oklch(0.6 0.012 250)",
+          "oklch(0.72 0.012 250)",
+          "oklch(0.84 0.012 250)",
+          "oklch(0.95 0.006 250)"
+        ]
+      },
+      "railway-blue": {
+        "role": "primary",
+        "displayName": "Railway Blue",
+        "canonical": "oklch(0.38 0.13 262)",
+        "tonalRamp": [
+          "oklch(0.15 0.065 262)",
+          "oklch(0.26 0.130 262)",
+          "oklch(0.37 0.130 262)",
+          "oklch(0.48 0.130 262)",
+          "oklch(0.6 0.130 262)",
+          "oklch(0.72 0.130 262)",
+          "oklch(0.84 0.130 262)",
+          "oklch(0.95 0.065 262)"
+        ]
+      },
+      "enamel-white": {
+        "role": "primary",
+        "displayName": "Enamel White",
+        "canonical": "oklch(0.985 0.004 240)",
+        "tonalRamp": [
+          "oklch(0.15 0.002 240)",
+          "oklch(0.26 0.004 240)",
+          "oklch(0.37 0.004 240)",
+          "oklch(0.48 0.004 240)",
+          "oklch(0.6 0.004 240)",
+          "oklch(0.72 0.004 240)",
+          "oklch(0.84 0.004 240)",
+          "oklch(0.95 0.002 240)"
+        ]
+      },
+      "focus-blue": {
+        "role": "primary",
+        "displayName": "Focus Blue",
+        "canonical": "oklch(0.5 0.15 260)",
+        "tonalRamp": [
+          "oklch(0.15 0.075 260)",
+          "oklch(0.26 0.150 260)",
+          "oklch(0.37 0.150 260)",
+          "oklch(0.48 0.150 260)",
+          "oklch(0.6 0.150 260)",
+          "oklch(0.72 0.150 260)",
+          "oklch(0.84 0.150 260)",
+          "oklch(0.95 0.075 260)"
+        ]
+      },
+      "enamel-rail": {
+        "role": "primary",
+        "displayName": "Enamel Rail",
+        "canonical": "oklch(0.31 0.115 263)",
+        "tonalRamp": [
+          "oklch(0.15 0.058 263)",
+          "oklch(0.26 0.115 263)",
+          "oklch(0.37 0.115 263)",
+          "oklch(0.48 0.115 263)",
+          "oklch(0.6 0.115 263)",
+          "oklch(0.72 0.115 263)",
+          "oklch(0.84 0.115 263)",
+          "oklch(0.95 0.058 263)"
+        ]
+      },
+      "enamel-rail-lit": {
+        "role": "primary",
+        "displayName": "Lit Rail",
+        "canonical": "oklch(0.38 0.12 263)",
+        "tonalRamp": [
+          "oklch(0.15 0.060 263)",
+          "oklch(0.26 0.120 263)",
+          "oklch(0.37 0.120 263)",
+          "oklch(0.48 0.120 263)",
+          "oklch(0.6 0.120 263)",
+          "oklch(0.72 0.120 263)",
+          "oklch(0.84 0.120 263)",
+          "oklch(0.95 0.060 263)"
+        ]
+      },
+      "rail-ink": {
+        "role": "primary",
+        "displayName": "Rail Ink",
+        "canonical": "oklch(0.96 0.012 250)",
+        "tonalRamp": [
+          "oklch(0.15 0.006 250)",
+          "oklch(0.26 0.012 250)",
+          "oklch(0.37 0.012 250)",
+          "oklch(0.48 0.012 250)",
+          "oklch(0.6 0.012 250)",
+          "oklch(0.72 0.012 250)",
+          "oklch(0.84 0.012 250)",
+          "oklch(0.95 0.006 250)"
+        ]
+      },
+      "signal-yellow": {
+        "role": "secondary",
+        "displayName": "Signal Yellow",
+        "canonical": "oklch(0.86 0.17 89)",
+        "tonalRamp": [
+          "oklch(0.15 0.085 89)",
+          "oklch(0.26 0.170 89)",
+          "oklch(0.37 0.170 89)",
+          "oklch(0.48 0.170 89)",
+          "oklch(0.6 0.170 89)",
+          "oklch(0.72 0.170 89)",
+          "oklch(0.84 0.170 89)",
+          "oklch(0.95 0.085 89)"
+        ]
+      },
+      "signal-yellow-pressed": {
+        "role": "secondary",
+        "displayName": "Signal Yellow Pressed",
+        "canonical": "oklch(0.83 0.17 86)",
+        "tonalRamp": [
+          "oklch(0.15 0.085 86)",
+          "oklch(0.26 0.170 86)",
+          "oklch(0.37 0.170 86)",
+          "oklch(0.48 0.170 86)",
+          "oklch(0.6 0.170 86)",
+          "oklch(0.72 0.170 86)",
+          "oklch(0.84 0.170 86)",
+          "oklch(0.95 0.085 86)"
+        ]
+      },
+      "signal-ink": {
+        "role": "secondary",
+        "displayName": "Signal Ink",
+        "canonical": "oklch(0.19 0.02 262)",
+        "tonalRamp": [
+          "oklch(0.15 0.010 262)",
+          "oklch(0.26 0.020 262)",
+          "oklch(0.37 0.020 262)",
+          "oklch(0.48 0.020 262)",
+          "oklch(0.6 0.020 262)",
+          "oklch(0.72 0.020 262)",
+          "oklch(0.84 0.020 262)",
+          "oklch(0.95 0.010 262)"
+        ]
+      },
+      "gain": {
+        "role": "tertiary",
+        "displayName": "Gain Green",
+        "canonical": "oklch(0.5 0.13 152)",
+        "tonalRamp": [
+          "oklch(0.15 0.065 152)",
+          "oklch(0.26 0.130 152)",
+          "oklch(0.37 0.130 152)",
+          "oklch(0.48 0.130 152)",
+          "oklch(0.6 0.130 152)",
+          "oklch(0.72 0.130 152)",
+          "oklch(0.84 0.130 152)",
+          "oklch(0.95 0.065 152)"
+        ]
+      },
+      "gain-soft": {
+        "role": "tertiary",
+        "displayName": "Gain Wash",
+        "canonical": "oklch(0.94 0.04 152)",
+        "tonalRamp": [
+          "oklch(0.15 0.020 152)",
+          "oklch(0.26 0.040 152)",
+          "oklch(0.37 0.040 152)",
+          "oklch(0.48 0.040 152)",
+          "oklch(0.6 0.040 152)",
+          "oklch(0.72 0.040 152)",
+          "oklch(0.84 0.040 152)",
+          "oklch(0.95 0.020 152)"
+        ]
+      },
+      "loss": {
+        "role": "tertiary",
+        "displayName": "Loss Red",
+        "canonical": "oklch(0.54 0.2 27)",
+        "tonalRamp": [
+          "oklch(0.15 0.100 27)",
+          "oklch(0.26 0.200 27)",
+          "oklch(0.37 0.200 27)",
+          "oklch(0.48 0.200 27)",
+          "oklch(0.6 0.200 27)",
+          "oklch(0.72 0.200 27)",
+          "oklch(0.84 0.200 27)",
+          "oklch(0.95 0.100 27)"
+        ]
+      },
+      "loss-soft": {
+        "role": "tertiary",
+        "displayName": "Loss Wash",
+        "canonical": "oklch(0.95 0.03 25)",
+        "tonalRamp": [
+          "oklch(0.15 0.015 25)",
+          "oklch(0.26 0.030 25)",
+          "oklch(0.37 0.030 25)",
+          "oklch(0.48 0.030 25)",
+          "oklch(0.6 0.030 25)",
+          "oklch(0.72 0.030 25)",
+          "oklch(0.84 0.030 25)",
+          "oklch(0.95 0.015 25)"
+        ]
+      },
+      "destructive": {
+        "role": "tertiary",
+        "displayName": "Validation Red",
+        "canonical": "oklch(0.55 0.2 27)",
+        "tonalRamp": [
+          "oklch(0.15 0.100 27)",
+          "oklch(0.26 0.200 27)",
+          "oklch(0.37 0.200 27)",
+          "oklch(0.48 0.200 27)",
+          "oklch(0.6 0.200 27)",
+          "oklch(0.72 0.200 27)",
+          "oklch(0.84 0.200 27)",
+          "oklch(0.95 0.100 27)"
+        ]
+      },
+      "warn": {
+        "role": "tertiary",
+        "displayName": "Warn Amber",
+        "canonical": "oklch(0.56 0.13 65)",
+        "tonalRamp": [
+          "oklch(0.15 0.065 65)",
+          "oklch(0.26 0.130 65)",
+          "oklch(0.37 0.130 65)",
+          "oklch(0.48 0.130 65)",
+          "oklch(0.6 0.130 65)",
+          "oklch(0.72 0.130 65)",
+          "oklch(0.84 0.130 65)",
+          "oklch(0.95 0.065 65)"
+        ]
+      },
+      "warn-soft": {
+        "role": "tertiary",
+        "displayName": "Warn Wash",
+        "canonical": "oklch(0.95 0.05 85)",
+        "tonalRamp": [
+          "oklch(0.15 0.025 85)",
+          "oklch(0.26 0.050 85)",
+          "oklch(0.37 0.050 85)",
+          "oklch(0.48 0.050 85)",
+          "oklch(0.6 0.050 85)",
+          "oklch(0.72 0.050 85)",
+          "oklch(0.84 0.050 85)",
+          "oklch(0.95 0.025 85)"
+        ]
+      },
+      "info": {
+        "role": "tertiary",
+        "displayName": "Info Blue",
+        "canonical": "oklch(0.45 0.13 258)",
+        "tonalRamp": [
+          "oklch(0.15 0.065 258)",
+          "oklch(0.26 0.130 258)",
+          "oklch(0.37 0.130 258)",
+          "oklch(0.48 0.130 258)",
+          "oklch(0.6 0.130 258)",
+          "oklch(0.72 0.130 258)",
+          "oklch(0.84 0.130 258)",
+          "oklch(0.95 0.065 258)"
+        ]
+      },
+      "info-soft": {
+        "role": "tertiary",
+        "displayName": "Info Wash",
+        "canonical": "oklch(0.94 0.025 255)",
+        "tonalRamp": [
+          "oklch(0.15 0.013 255)",
+          "oklch(0.26 0.025 255)",
+          "oklch(0.37 0.025 255)",
+          "oklch(0.48 0.025 255)",
+          "oklch(0.6 0.025 255)",
+          "oklch(0.72 0.025 255)",
+          "oklch(0.84 0.025 255)",
+          "oklch(0.95 0.013 255)"
+        ]
+      },
+      "board": {
+        "role": "neutral",
+        "displayName": "Board",
+        "canonical": "oklch(0.2 0.006 262)",
+        "tonalRamp": [
+          "oklch(0.15 0.003 262)",
+          "oklch(0.26 0.006 262)",
+          "oklch(0.37 0.006 262)",
+          "oklch(0.48 0.006 262)",
+          "oklch(0.6 0.006 262)",
+          "oklch(0.72 0.006 262)",
+          "oklch(0.84 0.006 262)",
+          "oklch(0.95 0.003 262)"
+        ]
+      },
+      "flap-leaf": {
+        "role": "neutral",
+        "displayName": "Flap Leaf",
+        "canonical": "oklch(0.255 0.006 262)",
+        "tonalRamp": [
+          "oklch(0.15 0.003 262)",
+          "oklch(0.26 0.006 262)",
+          "oklch(0.37 0.006 262)",
+          "oklch(0.48 0.006 262)",
+          "oklch(0.6 0.006 262)",
+          "oklch(0.72 0.006 262)",
+          "oklch(0.84 0.006 262)",
+          "oklch(0.95 0.003 262)"
+        ]
+      },
+      "flap-ink": {
+        "role": "neutral",
+        "displayName": "Flap Ink",
+        "canonical": "oklch(0.96 0.012 95)",
+        "tonalRamp": [
+          "oklch(0.15 0.006 95)",
+          "oklch(0.26 0.012 95)",
+          "oklch(0.37 0.012 95)",
+          "oklch(0.48 0.012 95)",
+          "oklch(0.6 0.012 95)",
+          "oklch(0.72 0.012 95)",
+          "oklch(0.84 0.012 95)",
+          "oklch(0.95 0.006 95)"
+        ]
+      },
+      "flap-dim": {
+        "role": "neutral",
+        "displayName": "Flap Dim",
+        "canonical": "oklch(0.72 0.012 95)",
+        "tonalRamp": [
+          "oklch(0.15 0.006 95)",
+          "oklch(0.26 0.012 95)",
+          "oklch(0.37 0.012 95)",
+          "oklch(0.48 0.012 95)",
+          "oklch(0.6 0.012 95)",
+          "oklch(0.72 0.012 95)",
+          "oklch(0.84 0.012 95)",
+          "oklch(0.95 0.006 95)"
+        ]
+      },
+      "flap-yellow": {
+        "role": "secondary",
+        "displayName": "Flap Yellow",
+        "canonical": "oklch(0.87 0.17 89)",
+        "tonalRamp": [
+          "oklch(0.15 0.085 89)",
+          "oklch(0.26 0.170 89)",
+          "oklch(0.37 0.170 89)",
+          "oklch(0.48 0.170 89)",
+          "oklch(0.6 0.170 89)",
+          "oklch(0.72 0.170 89)",
+          "oklch(0.84 0.170 89)",
+          "oklch(0.95 0.085 89)"
+        ]
+      },
+      "flap-gain": {
+        "role": "tertiary",
+        "displayName": "Flap Gain",
+        "canonical": "oklch(0.8 0.15 150)",
+        "tonalRamp": [
+          "oklch(0.15 0.075 150)",
+          "oklch(0.26 0.150 150)",
+          "oklch(0.37 0.150 150)",
+          "oklch(0.48 0.150 150)",
+          "oklch(0.6 0.150 150)",
+          "oklch(0.72 0.150 150)",
+          "oklch(0.84 0.150 150)",
+          "oklch(0.95 0.075 150)"
+        ]
+      },
+      "flap-loss": {
+        "role": "tertiary",
+        "displayName": "Flap Loss",
+        "canonical": "oklch(0.72 0.18 28)",
+        "tonalRamp": [
+          "oklch(0.15 0.090 28)",
+          "oklch(0.26 0.180 28)",
+          "oklch(0.37 0.180 28)",
+          "oklch(0.48 0.180 28)",
+          "oklch(0.6 0.180 28)",
+          "oklch(0.72 0.180 28)",
+          "oklch(0.84 0.180 28)",
+          "oklch(0.95 0.090 28)"
+        ]
+      },
+      "night-concourse-floor": {
+        "role": "neutral",
+        "displayName": "Concourse Floor (Night)",
+        "canonical": "oklch(0.165 0.012 262)",
+        "tonalRamp": [
+          "oklch(0.15 0.006 262)",
+          "oklch(0.26 0.012 262)",
+          "oklch(0.37 0.012 262)",
+          "oklch(0.48 0.012 262)",
+          "oklch(0.6 0.012 262)",
+          "oklch(0.72 0.012 262)",
+          "oklch(0.84 0.012 262)",
+          "oklch(0.95 0.006 262)"
+        ]
+      },
+      "night-enamel-panel": {
+        "role": "neutral",
+        "displayName": "Enamel Panel (Night)",
+        "canonical": "oklch(0.2 0.014 262)",
+        "tonalRamp": [
+          "oklch(0.15 0.007 262)",
+          "oklch(0.26 0.014 262)",
+          "oklch(0.37 0.014 262)",
+          "oklch(0.48 0.014 262)",
+          "oklch(0.6 0.014 262)",
+          "oklch(0.72 0.014 262)",
+          "oklch(0.84 0.014 262)",
+          "oklch(0.95 0.007 262)"
+        ]
+      },
+      "night-station-ink": {
+        "role": "neutral",
+        "displayName": "Station Ink (Night)",
+        "canonical": "oklch(0.94 0.008 250)",
+        "tonalRamp": [
+          "oklch(0.15 0.004 250)",
+          "oklch(0.26 0.008 250)",
+          "oklch(0.37 0.008 250)",
+          "oklch(0.48 0.008 250)",
+          "oklch(0.6 0.008 250)",
+          "oklch(0.72 0.008 250)",
+          "oklch(0.84 0.008 250)",
+          "oklch(0.95 0.004 250)"
+        ]
+      },
+      "night-railway-blue": {
+        "role": "primary",
+        "displayName": "Railway Blue (Night)",
+        "canonical": "oklch(0.78 0.1 255)",
+        "tonalRamp": [
+          "oklch(0.15 0.050 255)",
+          "oklch(0.26 0.100 255)",
+          "oklch(0.37 0.100 255)",
+          "oklch(0.48 0.100 255)",
+          "oklch(0.6 0.100 255)",
+          "oklch(0.72 0.100 255)",
+          "oklch(0.84 0.100 255)",
+          "oklch(0.95 0.050 255)"
+        ]
+      },
+      "night-enamel-rail": {
+        "role": "primary",
+        "displayName": "Enamel Rail (Night)",
+        "canonical": "oklch(0.21 0.07 263)",
+        "tonalRamp": [
+          "oklch(0.15 0.035 263)",
+          "oklch(0.26 0.070 263)",
+          "oklch(0.37 0.070 263)",
+          "oklch(0.48 0.070 263)",
+          "oklch(0.6 0.070 263)",
+          "oklch(0.72 0.070 263)",
+          "oklch(0.84 0.070 263)",
+          "oklch(0.95 0.035 263)"
+        ]
+      },
+      "night-gain": {
+        "role": "tertiary",
+        "displayName": "Gain Green (Night)",
+        "canonical": "oklch(0.77 0.15 152)",
+        "tonalRamp": [
+          "oklch(0.15 0.075 152)",
+          "oklch(0.26 0.150 152)",
+          "oklch(0.37 0.150 152)",
+          "oklch(0.48 0.150 152)",
+          "oklch(0.6 0.150 152)",
+          "oklch(0.72 0.150 152)",
+          "oklch(0.84 0.150 152)",
+          "oklch(0.95 0.075 152)"
+        ]
+      },
+      "night-loss": {
+        "role": "tertiary",
+        "displayName": "Loss Red (Night)",
+        "canonical": "oklch(0.72 0.18 27)",
+        "tonalRamp": [
+          "oklch(0.15 0.090 27)",
+          "oklch(0.26 0.180 27)",
+          "oklch(0.37 0.180 27)",
+          "oklch(0.48 0.180 27)",
+          "oklch(0.6 0.180 27)",
+          "oklch(0.72 0.180 27)",
+          "oklch(0.84 0.180 27)",
+          "oklch(0.95 0.090 27)"
+        ]
+      },
+      "night-board": {
+        "role": "neutral",
+        "displayName": "Board (Night)",
+        "canonical": "oklch(0.12 0.006 262)",
+        "tonalRamp": [
+          "oklch(0.15 0.003 262)",
+          "oklch(0.26 0.006 262)",
+          "oklch(0.37 0.006 262)",
+          "oklch(0.48 0.006 262)",
+          "oklch(0.6 0.006 262)",
+          "oklch(0.72 0.006 262)",
+          "oklch(0.84 0.006 262)",
+          "oklch(0.95 0.003 262)"
+        ]
+      },
+      "night-flap-leaf": {
+        "role": "neutral",
+        "displayName": "Flap Leaf (Night)",
+        "canonical": "oklch(0.175 0.007 262)",
+        "tonalRamp": [
+          "oklch(0.15 0.004 262)",
+          "oklch(0.26 0.007 262)",
+          "oklch(0.37 0.007 262)",
+          "oklch(0.48 0.007 262)",
+          "oklch(0.6 0.007 262)",
+          "oklch(0.72 0.007 262)",
+          "oklch(0.84 0.007 262)",
+          "oklch(0.95 0.004 262)"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "headline": {
+        "displayName": "Page Title",
+        "purpose": "Platform header title, one per page."
+      },
+      "title": {
+        "displayName": "Section Title",
+        "purpose": "Section headings inside a page; sentence case, no kicker."
+      },
+      "board-title": {
+        "displayName": "Board Title",
+        "purpose": "Uppercase flap-yellow name sign on the departures board only."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Base reading text (14px)."
+      },
+      "body-dense": {
+        "displayName": "Body Dense",
+        "purpose": "Tables, controls, dialogs, tabs (13px, tabular numerals)."
+      },
+      "label": {
+        "displayName": "Signage Caps",
+        "purpose": "Table heads and figure captions in timetable grey."
+      },
+      "board-label": {
+        "displayName": "Board Label",
+        "purpose": "Captions and column heads on the dark board, flap-dim."
+      },
+      "flap": {
+        "displayName": "Flap",
+        "purpose": "Barlow Condensed caps inside flap cells on board rows."
+      },
+      "flap-total": {
+        "displayName": "Flap Total",
+        "purpose": "Board totals line (15px phones, 19px from sm)."
+      }
+    },
+    "shadows": [
+      {
+        "name": "panel-rest",
+        "value": "0 1px 2px oklch(0.2 0.02 262 / 0.06)",
+        "purpose": "Cards at rest, paired with a 1px hairline ring."
+      },
+      {
+        "name": "board-mount",
+        "value": "inset 0 1px 0 oklch(1 0 0 / 6%), 0 1px 2px oklch(0 0 0 / 18%), 0 8px 24px -12px oklch(0.2 0.05 262 / 45%)",
+        "purpose": "The departures board and session sign in day mode."
+      },
+      {
+        "name": "board-mount-night",
+        "value": "inset 0 1px 0 oklch(1 0 0 / 6%), 0 0 0 1px oklch(1 0 0 / 9%), 0 8px 24px -12px oklch(0 0 0 / 60%)",
+        "purpose": "The board at night, outlined so it still reads against the dark floor."
+      },
+      {
+        "name": "dialog-float",
+        "value": "0 24px 48px -16px oklch(0.2 0.06 262 / 0.45)",
+        "purpose": "Dialogs and alert dialogs."
+      },
+      {
+        "name": "signal-press",
+        "value": "inset 0 -1px 0 oklch(0 0 0 / 0.18), 0 1px 1px oklch(0.2 0.05 90 / 0.2)",
+        "purpose": "Primary (signal-yellow) button."
+      },
+      {
+        "name": "field-inset",
+        "value": "inset 0 1px 1px oklch(0.2 0.02 262 / 0.05)",
+        "purpose": "Inputs."
+      },
+      {
+        "name": "flap-leaf",
+        "value": "inset 0 -1px 0 oklch(0 0 0 / 35%)",
+        "purpose": "Bottom lip of every flap cell."
+      }
+    ],
+    "motion": [
+      {
+        "name": "flap-tick",
+        "value": "55ms",
+        "purpose": "One glyph step of a flap riffle; 3-5 ticks per cell, a value lands within ~300ms. Only on value change, or once per session for an id."
+      },
+      {
+        "name": "flap-stagger-row",
+        "value": "20ms",
+        "purpose": "Delay per board row (capped at 8 rows)."
+      },
+      {
+        "name": "flap-stagger-total",
+        "value": "40ms",
+        "purpose": "Delay per total on the board totals line."
+      },
+      {
+        "name": "flap-flip",
+        "value": "70ms steps(1)",
+        "purpose": "Leaf clip reveal on a flipping cell; disabled under prefers-reduced-motion."
+      },
+      {
+        "name": "overlay",
+        "value": "100ms",
+        "purpose": "Dialog, popover, and menu fade/zoom in and out."
+      },
+      {
+        "name": "state",
+        "value": "150ms",
+        "purpose": "Button and control color/shadow transitions; state only, never layout."
+      },
+      {
+        "name": "ease-out-expo",
+        "value": "cubic-bezier(0.16, 1, 0.3, 1)",
+        "purpose": "Defined easing for eased state changes."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "sm",
+        "value": "640px"
+      },
+      {
+        "name": "md",
+        "value": "768px"
+      },
+      {
+        "name": "lg",
+        "value": "1024px"
+      },
+      {
+        "name": "xl",
+        "value": "1280px"
+      },
+      {
+        "name": "2xl",
+        "value": "1536px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Signal yellow: the one action on the page (Add trade, Close Trade, Roll Trade).",
+      "html": "<button class=\"ds-btn-primary\">Add trade</button>",
+      "css": ".ds-btn-primary { display:inline-flex; align-items:center; height:32px; padding:0 12px; border:1px solid transparent; border-radius:calc(var(--radius, 0.3rem) * 0.75); background:var(--signal, oklch(0.86 0.17 89)); color:var(--signal-foreground, oklch(0.19 0.02 262)); font:600 13px/1 var(--font-barlow, Barlow), sans-serif; box-shadow:inset 0 -1px 0 oklch(0 0 0 / 0.18), 0 1px 1px oklch(0.2 0.05 90 / 0.2); cursor:pointer; transition:background-color 150ms, box-shadow 150ms; } .ds-btn-primary:hover { background:oklch(0.83 0.17 86); } .ds-btn-primary:focus-visible { outline:none; box-shadow:0 0 0 1px var(--background, oklch(0.953 0.004 240)), 0 0 0 3px var(--ring, oklch(0.5 0.15 260)); } .ds-btn-primary:active { transform:translateY(1px); }"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Blue enamel for secondary wayfinding actions.",
+      "html": "<button class=\"ds-btn-secondary\">View trades</button>",
+      "css": ".ds-btn-secondary { display:inline-flex; align-items:center; height:32px; padding:0 12px; border:1px solid transparent; border-radius:calc(var(--radius, 0.3rem) * 0.75); background:var(--sidebar, oklch(0.31 0.115 263)); color:var(--sidebar-foreground, oklch(0.96 0.012 250)); font:600 13px/1 var(--font-barlow, Barlow), sans-serif; cursor:pointer; transition:background-color 150ms; } .ds-btn-secondary:hover { background:var(--sidebar-accent, oklch(0.38 0.12 263)); } .ds-btn-secondary:focus-visible { outline:none; box-shadow:0 0 0 1px var(--background, oklch(0.953 0.004 240)), 0 0 0 3px var(--ring, oklch(0.5 0.15 260)); } .ds-btn-secondary:active { transform:translateY(1px); }"
+    },
+    {
+      "name": "Outline Button",
+      "kind": "button",
+      "refersTo": "button-outline",
+      "description": "Enamel panel with a field-edge stroke; Cancel and neutral actions.",
+      "html": "<button class=\"ds-btn-outline\">Cancel</button>",
+      "css": ".ds-btn-outline { display:inline-flex; align-items:center; height:32px; padding:0 12px; border:1px solid var(--input, oklch(0.8 0.012 250)); border-radius:calc(var(--radius, 0.3rem) * 0.75); background:var(--card, oklch(0.99 0.002 240)); color:var(--foreground, oklch(0.2 0.018 262)); font:600 13px/1 var(--font-barlow, Barlow), sans-serif; cursor:pointer; transition:background-color 150ms, border-color 150ms; } .ds-btn-outline:hover { background:var(--accent, oklch(0.925 0.018 250)); } .ds-btn-outline:focus-visible { outline:none; box-shadow:0 0 0 1px var(--background, oklch(0.953 0.004 240)), 0 0 0 3px var(--ring, oklch(0.5 0.15 260)); }"
+    },
+    {
+      "name": "Text Input",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "32px field with tabular numerals; focus shifts the stroke to focus blue.",
+      "html": "<input class=\"ds-input\" placeholder=\"Strike\" value=\"425.00\" />",
+      "css": ".ds-input { height:32px; width:220px; padding:4px 10px; border:1px solid var(--input, oklch(0.8 0.012 250)); border-radius:calc(var(--radius, 0.3rem) * 0.75); background:var(--card, oklch(0.99 0.002 240)); color:var(--foreground, oklch(0.2 0.018 262)); font:400 13px var(--font-barlow, Barlow), sans-serif; font-variant-numeric:tabular-nums lining-nums; box-shadow:inset 0 1px 1px oklch(0.2 0.02 262 / 0.05); outline:none; transition:border-color 150ms, box-shadow 150ms; } .ds-input::placeholder { color:var(--muted-foreground, oklch(0.46 0.02 255)); } .ds-input:focus-visible { border-color:var(--ring, oklch(0.5 0.15 260)); box-shadow:0 0 0 2px color-mix(in oklch, var(--ring, oklch(0.5 0.15 260)) 25%, transparent); }"
+    },
+    {
+      "name": "Wayfinding Rail",
+      "kind": "nav",
+      "refersTo": "nav-item",
+      "description": "Blue enamel sidebar; active destination fills Lit Rail, focus is signal yellow.",
+      "html": "<nav class=\"ds-rail\"><a class=\"ds-rail-item is-active\" href=\"#\"><svg width=\"19\" height=\"19\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><rect x=\"3\" y=\"3\" width=\"7\" height=\"9\" rx=\"1\"/><rect x=\"14\" y=\"3\" width=\"7\" height=\"5\" rx=\"1\"/><rect x=\"14\" y=\"12\" width=\"7\" height=\"9\" rx=\"1\"/><rect x=\"3\" y=\"16\" width=\"7\" height=\"5\" rx=\"1\"/></svg>Dashboard</a><a class=\"ds-rail-item\" href=\"#\"><svg width=\"19\" height=\"19\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\"><path d=\"M4 7h16M4 12h16M4 17h10\"/></svg>Trades</a><a class=\"ds-rail-item\" href=\"#\"><svg width=\"19\" height=\"19\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\"><circle cx=\"12\" cy=\"12\" r=\"8\"/><circle cx=\"12\" cy=\"12\" r=\"3\"/></svg>Goals</a></nav>",
+      "css": ".ds-rail { width:240px; padding:12px 8px; background:var(--sidebar, oklch(0.31 0.115 263)); display:flex; flex-direction:column; gap:2px; } .ds-rail-item { display:flex; align-items:center; gap:12px; height:40px; padding:0 12px; border-radius:calc(var(--radius, 0.3rem) * 0.75); color:color-mix(in oklch, var(--sidebar-foreground, oklch(0.96 0.012 250)) 75%, transparent); font:500 14px var(--font-barlow, Barlow), sans-serif; text-decoration:none; transition:background-color 150ms, color 150ms; } .ds-rail-item:hover { color:var(--sidebar-foreground, oklch(0.96 0.012 250)); background:color-mix(in oklch, var(--sidebar-accent, oklch(0.38 0.12 263)) 60%, transparent); } .ds-rail-item.is-active { background:var(--sidebar-accent, oklch(0.38 0.12 263)); color:oklch(0.99 0 0); } .ds-rail-item:focus-visible { outline:2px solid var(--sidebar-ring, oklch(0.86 0.17 89)); }"
+    },
+    {
+      "name": "Badge",
+      "kind": "chip",
+      "refersTo": "badge",
+      "description": "Blue enamel signage chip in condensed caps.",
+      "html": "<span class=\"ds-badge\">Main</span> <span class=\"ds-badge ds-badge-loss\">Expired</span>",
+      "css": ".ds-badge { display:inline-flex; align-items:center; height:20px; padding:2px 6px; border-radius:calc(var(--radius, 0.3rem) * 0.5); background:var(--sidebar, oklch(0.31 0.115 263)); color:var(--sidebar-foreground, oklch(0.96 0.012 250)); font:600 11px var(--font-barlow-semi, \"Barlow Semi Condensed\"), sans-serif; text-transform:uppercase; letter-spacing:0.05em; } .ds-badge-loss { background:var(--loss-soft, oklch(0.95 0.03 25)); color:var(--loss, oklch(0.54 0.2 27)); }"
+    },
+    {
+      "name": "Card",
+      "kind": "card",
+      "refersTo": "card",
+      "description": "Enamel panel framing tables and forms; never a KPI tile.",
+      "html": "<div class=\"ds-card\"><div class=\"ds-card-title\">Setups</div><p class=\"ds-card-body\">Strategy tags group trades for analysis.</p></div>",
+      "css": ".ds-card { width:320px; padding:16px; border-radius:var(--radius, 0.3rem); background:var(--card, oklch(0.99 0.002 240)); color:var(--card-foreground, oklch(0.2 0.018 262)); box-shadow:0 0 0 1px var(--border, oklch(0.87 0.008 245)), 0 1px 2px oklch(0.2 0.02 262 / 0.06); } .ds-card-title { font:600 15px var(--font-barlow-semi, \"Barlow Semi Condensed\"), sans-serif; margin-bottom:6px; } .ds-card-body { margin:0; font:400 13px var(--font-barlow, Barlow), sans-serif; color:var(--muted-foreground, oklch(0.46 0.02 255)); }"
+    },
+    {
+      "name": "Departures Board",
+      "kind": "custom",
+      "refersTo": "board",
+      "description": "The only dark object in daylight: totals line and open positions posted on hinge-lined flap cells with status leaves.",
+      "html": "<section class=\"ds-board\"><div class=\"ds-board-head\"><h2 class=\"ds-board-title\">Departures</h2><span class=\"ds-board-meta\">3 open</span></div><div class=\"ds-board-total\"><div class=\"ds-board-label\">Sep P&amp;L</div><span class=\"ds-flaps ds-lg ds-gain\"><i>+</i><i>$</i><i>1</i><i>,</i><i>2</i><i>0</i><i>4</i><i>.</i><i>0</i><i>0</i></span></div><div class=\"ds-board-row\"><span class=\"ds-flaps ds-yellow\"><i>S</i><i>P</i><i>Y</i><i> </i><i> </i></span><span class=\"ds-flaps\"><i> </i><i>4</i></span><span class=\"ds-status ds-due\">Due</span></div><div class=\"ds-board-row\"><span class=\"ds-flaps\"><i>A</i><i>A</i><i>P</i><i>L</i><i> </i></span><span class=\"ds-flaps\"><i>2</i><i>1</i></span><span class=\"ds-status\">On time</span></div></section>",
+      "css": ".ds-board { width:420px; padding:16px 20px; border-radius:var(--radius, 0.3rem); background:var(--board, oklch(0.2 0.006 262)); color:var(--flap-ink, oklch(0.96 0.012 95)); box-shadow:inset 0 1px 0 oklch(1 0 0 / 6%), 0 1px 2px oklch(0 0 0 / 18%), 0 8px 24px -12px oklch(0.2 0.05 262 / 45%); font-family:var(--font-barlow, Barlow), sans-serif; } .ds-board-head { display:flex; justify-content:space-between; align-items:baseline; } .ds-board-title { margin:0; font:600 15px var(--font-barlow-semi, \"Barlow Semi Condensed\"), sans-serif; text-transform:uppercase; letter-spacing:0.1em; color:var(--flap-yellow, oklch(0.87 0.17 89)); } .ds-board-meta { font-size:12px; color:var(--flap-dim, oklch(0.72 0.012 95)); } .ds-board-total { padding:14px 0; border-bottom:1px solid oklch(1 0 0 / 8%); margin-bottom:10px; } .ds-board-label { font:600 10px var(--font-barlow-semi, \"Barlow Semi Condensed\"), sans-serif; letter-spacing:0.12em; text-transform:uppercase; color:var(--flap-dim, oklch(0.72 0.012 95)); margin-bottom:6px; } .ds-board-row { display:flex; align-items:center; gap:16px; padding:3px 0; } .ds-flaps { display:inline-flex; gap:1px; font:600 14px/1 var(--font-barlow-cond, \"Barlow Condensed\"), sans-serif; font-variant-numeric:tabular-nums; text-transform:uppercase; } .ds-flaps.ds-lg { font-size:19px; gap:2px; } .ds-flaps i { position:relative; display:inline-flex; align-items:center; justify-content:center; width:0.85em; height:1.48em; font-style:normal; border-radius:2px; background:linear-gradient(to bottom, color-mix(in oklch, var(--flap, oklch(0.255 0.006 262)) 100%, white 4%) 0 49.5%, var(--flap, oklch(0.255 0.006 262)) 50.5% 100%); box-shadow:inset 0 -1px 0 oklch(0 0 0 / 35%); } .ds-flaps i::after { content:\"\"; position:absolute; left:0; right:0; top:50%; height:1px; background:oklch(0 0 0 / 32%); } .ds-gain { color:var(--flap-gain, oklch(0.8 0.15 150)); } .ds-yellow { color:var(--flap-yellow, oklch(0.87 0.17 89)); } .ds-status { position:relative; display:inline-flex; align-items:center; justify-content:center; min-width:5.2rem; height:1.55em; padding:0 8px; border-radius:2px; background:var(--flap, oklch(0.255 0.006 262)); font:600 13.5px/1 var(--font-barlow-cond, \"Barlow Condensed\"), sans-serif; letter-spacing:0.06em; text-transform:uppercase; } .ds-status::after { content:\"\"; position:absolute; left:0; right:0; top:50%; height:1px; background:oklch(0 0 0 / 20%); } .ds-status.ds-due { background:var(--flap-yellow, oklch(0.87 0.17 89)); color:var(--signal-foreground, oklch(0.19 0.02 262)); }"
+    },
+    {
+      "name": "Data Table",
+      "kind": "custom",
+      "refersTo": "card",
+      "description": "Signage-caps head on a platform-grey band, tabular right-aligned money in gain/loss.",
+      "html": "<table class=\"ds-table\"><thead><tr><th>Month</th><th class=\"num\">Sched. P&amp;L</th><th class=\"num\">Actual P&amp;L</th></tr></thead><tbody><tr><td>Aug</td><td class=\"num\">$2,410.00</td><td class=\"num gain\">+$2,871.35</td></tr><tr><td>Sep <span class=\"ds-now\">Now</span></td><td class=\"num\">$2,480.00</td><td class=\"num loss\">-$312.40</td></tr></tbody></table>",
+      "css": ".ds-table { width:420px; border-collapse:collapse; background:var(--card, oklch(0.99 0.002 240)); box-shadow:0 0 0 1px var(--border, oklch(0.87 0.008 245)); border-radius:var(--radius, 0.3rem); overflow:hidden; font:400 13px var(--font-barlow, Barlow), sans-serif; font-variant-numeric:tabular-nums lining-nums; color:var(--foreground, oklch(0.2 0.018 262)); } .ds-table thead { background:color-mix(in oklch, var(--muted, oklch(0.925 0.006 240)) 60%, transparent); } .ds-table th { padding:10px 16px; text-align:left; font:600 11px var(--font-barlow-semi, \"Barlow Semi Condensed\"), sans-serif; text-transform:uppercase; letter-spacing:0.07em; color:var(--muted-foreground, oklch(0.46 0.02 255)); border-bottom:1px solid var(--border, oklch(0.87 0.008 245)); } .ds-table td { padding:10px 16px; border-top:1px solid var(--border, oklch(0.87 0.008 245)); } .ds-table .num { text-align:right; } .ds-table .gain { color:var(--gain, oklch(0.5 0.13 152)); } .ds-table .loss { color:var(--loss, oklch(0.54 0.2 27)); } .ds-now { margin-left:8px; padding:1px 6px; border-radius:calc(var(--radius, 0.3rem) * 0.5); background:var(--primary, oklch(0.38 0.13 262)); color:var(--primary-foreground, oklch(0.985 0.004 240)); font:600 10px var(--font-barlow-semi, \"Barlow Semi Condensed\"), sans-serif; text-transform:uppercase; letter-spacing:0.07em; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Departure Hall",
+    "overview": "Every option has a scheduled departure, and Strike Zone is the station board that runs the book on time. The system is a railway concourse in daylight: a pale, cool enamel floor, a railway-blue wayfinding rail down the left edge, blue enamel pictogram signs, and one dark split-flap board that announces what departs next. Numbers are the interface. They sit on hinge-lined flap leaves on the board and in tabular, right-aligned columns everywhere else, so gains, losses, and time-to-expiry read in one look during a live session.\n\nDensity is operational, not editorial: 13–14px working text, 32px controls, tight table rows, and a board that runs full width at the top of the dashboard. Hierarchy comes from the station's own devices (the board against the pale floor, blue enamel for where you are, yellow for what you do), not from tinted KPI cards or decorative chrome. The system rejects the KPI-card trading dashboard: there is no grid of stat tiles; totals post as one line on the board.\n\nThe hall has a night mode that dims the concourse around the board. The board keeps its role as the darkest object in the room, and the blue and semantic tones lift in lightness to stay legible on the dark floor.",
+    "keyCharacteristics": [
+      "Pale cool-grey concourse, one dark split-flap board, blue enamel for wayfinding.",
+      "Signal yellow is the single action color; it never decorates.",
+      "Barlow in three widths: regular for reading, semi-condensed for signage and headings, condensed for flap cells.",
+      "Money carries cents, numerals are tabular, and gain/loss colors are never ambiguous.",
+      "Timetable vocabulary: Departures, Scheduled, ahead of / behind timetable, the year as a route.",
+      "Motion is mechanical and brief: a flap riffle on changed values, 100–200ms state transitions elsewhere."
+    ],
+    "rules": [
+      {
+        "name": "The One Signal Rule",
+        "body": "Signal yellow fills action buttons and nothing else in daylight. Yellow appears elsewhere only as flap-yellow ink or a status leaf on the dark board.",
+        "section": "colors"
+      },
+      {
+        "name": "The Wayfinding Rule",
+        "body": "Railway blue carries place: links, selection, the active destination, today, and \"now\". It never labels a gain or a loss.",
+        "section": "colors"
+      },
+      {
+        "name": "The Money Pair Rule",
+        "body": "Signed amounts use gain and loss tokens (flap-gain / flap-loss on the board). Zero reads in the dim or muted tone, never green.",
+        "section": "colors"
+      },
+      {
+        "name": "The Tabular Rule",
+        "body": "Tables, inputs, and any element marked `data-num` set `tabular-nums lining-nums`. Numeric columns are right-aligned.",
+        "section": "typography"
+      },
+      {
+        "name": "The Signage Caps Rule",
+        "body": "Uppercase tracked caps are for column heads, figure captions, and the board, where a real sign would use them. Section headings are sentence case at 17px semibold, with no eyebrow or kicker line above them.",
+        "section": "typography"
+      },
+      {
+        "name": "The One Dark Object Rule",
+        "body": "In day mode the board (and the flap cells on it) is the only near-black surface. Blue enamel is the only other deep fill, and it belongs to wayfinding. Nothing else goes dark to get attention.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "**Do** put the page's one action in the signal-yellow primary button, top right of the platform header.",
+      "**Do** open every page with the platform header: pictogram square, 26px title, meta, session sign, actions.",
+      "**Do** post live, glanceable numbers on the board as flap cells, and everything else in tabular, right-aligned columns.",
+      "**Do** carry cents on money everywhere (`formatCurrency` defaults to two decimals) and sign amounts with gain/loss tokens.",
+      "**Do** use railway blue for links, selection, today, and \"now\", and blue enamel for place-marking fills.",
+      "**Do** speak the timetable: Departures, Scheduled, ahead of / behind timetable, route.",
+      "**Do** keep motion state-only: flap riffles on changed values within ~300ms, overlays in 100ms, control state changes in 150–200ms, and honor reduced motion."
+    ],
+    "donts": [
+      "**Don't** build KPI stat-card grids; totals post as one line on the board.",
+      "**Don't** use signal yellow for decoration, chart marks, highlights, or status off the board.",
+      "**Don't** introduce a second dark surface in day mode; if something needs weight, it belongs on the board or in blue enamel.",
+      "**Don't** put eyebrow or kicker labels above section headings.",
+      "**Don't** round money to whole dollars or color zero as a gain.",
+      "**Don't** animate on load for its own sake; a flap that has already posted this session stays still."
+    ]
+  }
+}

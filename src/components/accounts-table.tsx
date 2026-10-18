@@ -41,6 +41,8 @@ import {
   type CashActivityRecord,
 } from "@/lib/parse-cash-activity";
 import { cn } from "@/lib/utils";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { MoreHorizontalIcon } from "@hugeicons/core-free-icons";
 
 type CashActivityEntry = {
   id: string;
@@ -202,12 +204,12 @@ const ACTIVITY_TYPE_VARIANT: Record<string, BadgeVariant> = {
 };
 
 const TYPE_CHIP_COLOR: Record<string, string> = {
-  MARGIN_INTEREST: "bg-amber-50 text-amber-700 ring-amber-200",
-  INTEREST: "bg-emerald-50 text-emerald-700 ring-emerald-200",
-  DIVIDEND: "bg-emerald-50 text-emerald-700 ring-emerald-200",
-  TAX: "bg-rose-50 text-rose-700 ring-rose-200",
-  DEPOSIT: "bg-blue-50 text-blue-700 ring-blue-200",
-  WITHDRAWAL: "bg-rose-50 text-rose-700 ring-rose-200",
+  MARGIN_INTEREST: "bg-warn-soft text-warn ring-warn/30",
+  INTEREST: "bg-gain-soft text-gain ring-gain/25",
+  DIVIDEND: "bg-gain-soft text-gain ring-gain/25",
+  TAX: "bg-loss-soft text-loss ring-loss/25",
+  DEPOSIT: "bg-info-soft text-info ring-info/25",
+  WITHDRAWAL: "bg-loss-soft text-loss ring-loss/25",
   OTHER: "bg-muted/80 text-muted-foreground ring-border",
 };
 
@@ -397,7 +399,7 @@ function ImportMovementsDialog({
                 <span
                   key={type}
                   className={cn(
-                    "rounded-full px-2.5 py-0.5 font-medium ring-1",
+                    "rounded-sm px-2 py-0.5 font-semibold ring-1",
                     TYPE_CHIP_COLOR[type] ?? TYPE_CHIP_COLOR.OTHER,
                   )}
                 >
@@ -406,27 +408,27 @@ function ImportMovementsDialog({
               ))}
             </div>
 
-            <div className="rounded-md border overflow-x-auto">
-              <table className="w-full text-xs">
-                <thead className="border-b bg-muted/50">
+            <div className="rounded-md ring-1 ring-border relative overflow-x-auto">
+              <table className="data-table w-full text-[13px]">
+                <thead className="border-b bg-muted/60">
                   <tr>
-                    <th className="px-3 py-2 text-left font-medium text-muted-foreground">
+                    <th className="px-3 py-2 text-left ">
                       Date
                     </th>
-                    <th className="px-3 py-2 text-left font-medium text-muted-foreground">
+                    <th className="px-3 py-2 text-left ">
                       Type
                     </th>
-                    <th className="px-3 py-2 text-left font-medium text-muted-foreground">
+                    <th className="px-3 py-2 text-left ">
                       Description
                     </th>
-                    <th className="px-3 py-2 text-right font-medium text-muted-foreground">
+                    <th className="px-3 py-2 text-right ">
                       Amount
                     </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y">
                   {records.map((r, i) => (
-                    <tr key={i} className="hover:bg-muted/30 transition-colors">
+                    <tr key={i} className="hover:bg-accent/60 transition-colors">
                       <td className="px-3 py-1.5 tabular-nums text-muted-foreground whitespace-nowrap">
                         {new Date(r.date + "T12:00:00Z").toLocaleDateString(
                           "en-US",
@@ -452,7 +454,7 @@ function ImportMovementsDialog({
                       <td
                         className={cn(
                           "px-3 py-1.5 text-right tabular-nums font-medium",
-                          r.amount >= 0 ? "text-emerald-600" : "text-rose-600",
+                          r.amount >= 0 ? "text-gain" : "text-loss",
                         )}
                       >
                         {r.amount >= 0 ? "+" : ""}$
@@ -485,12 +487,12 @@ function ImportMovementsDialog({
 
         {phase === "done" && result && (
           <div className="space-y-4">
-            <div className="rounded-md border divide-y text-sm">
+            <div className="rounded-md ring-1 ring-border divide-y text-[13px]">
               <div className="flex justify-between px-4 py-2.5">
                 <span className="text-muted-foreground">
                   Movements imported
                 </span>
-                <span className="font-semibold text-emerald-600">
+                <span className="font-semibold text-gain">
                   {result.imported}
                 </span>
               </div>
@@ -499,7 +501,7 @@ function ImportMovementsDialog({
                   <span className="text-muted-foreground">
                     Duplicates skipped
                   </span>
-                  <span className="font-semibold text-amber-600">
+                  <span className="font-semibold text-warn">
                     {result.skipped}
                   </span>
                 </div>
@@ -560,7 +562,7 @@ function ViewMovementsDialog({
               return (
                 <div key={batchId} className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs text-muted-foreground font-mono">
+                    <span className="text-[12px] text-muted-foreground tabular-nums">
                       Batch {batchId.slice(0, 8)}… ({items.length} row
                       {items.length !== 1 ? "s" : ""})
                     </span>
@@ -576,8 +578,8 @@ function ViewMovementsDialog({
                         : "Revert import"}
                     </Button>
                   </div>
-                  <table className="w-full text-sm">
-                    <thead className="border-b bg-muted/50">
+                  <table className="data-table w-full text-[13px]">
+                    <thead className="border-b bg-muted/60">
                       <tr>
                         <th className="px-2 py-1 text-left font-medium">
                           Date
@@ -615,7 +617,7 @@ function ViewMovementsDialog({
                             {a.description}
                           </td>
                           <td
-                            className={`px-2 py-1 text-right font-mono ${a.amount >= 0 ? "text-green-600" : "text-red-600"}`}
+                            className={`px-2 py-1 text-right ${a.amount >= 0 ? "text-gain" : "text-loss"}`}
                           >
                             {a.amount >= 0 ? "+" : ""}
                             {a.amount.toLocaleString(undefined, {
@@ -626,7 +628,7 @@ function ViewMovementsDialog({
                         </tr>
                       ))}
                     </tbody>
-                    <tfoot className="border-t bg-muted/30">
+                    <tfoot className="border-t bg-muted/60">
                       <tr>
                         <td
                           colSpan={3}
@@ -636,8 +638,8 @@ function ViewMovementsDialog({
                         </td>
                         <td
                           className={cn(
-                            "px-2 py-1.5 text-right font-mono font-semibold",
-                            batchTotal >= 0 ? "text-green-600" : "text-red-600",
+                            "px-2 py-1.5 text-right font-semibold",
+                            batchTotal >= 0 ? "text-gain" : "text-loss",
                           )}
                         >
                           {batchTotal >= 0 ? "+" : ""}
@@ -663,8 +665,8 @@ function ViewMovementsDialog({
                     <span className="text-muted-foreground">Grand total</span>
                     <span
                       className={cn(
-                        "font-mono",
-                        grandTotal >= 0 ? "text-green-600" : "text-red-600",
+                        "tabular-nums",
+                        grandTotal >= 0 ? "text-gain" : "text-loss",
                       )}
                     >
                       {grandTotal >= 0 ? "+" : ""}
@@ -696,36 +698,39 @@ export function AccountsTable({ accounts }: { accounts: Account[] }) {
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-end">
-        <Button onClick={() => setAddOpen(true)}>Add Account</Button>
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-[13px] text-muted-foreground">
+          The <span className="font-semibold text-foreground">main</span> account feeds the dashboard and its goal.
+        </p>
+        <Button onClick={() => setAddOpen(true)}>Add account</Button>
       </div>
 
-      <div className="rounded-md border">
-        <table className="w-full text-sm">
-          <thead className="border-b bg-muted/50">
+      <div className="rounded-lg ring-1 ring-border bg-card relative overflow-x-auto">
+        <table className="data-table w-full text-[13px]">
+          <thead className="border-b bg-muted/60">
             <tr>
-              <th className="px-4 py-3 text-left font-medium">Name</th>
-              <th className="px-4 py-3 text-left font-medium">Broker</th>
-              <th className="px-4 py-3 text-right font-medium">Starting</th>
-              <th className="px-4 py-3 text-right font-medium">Current</th>
-              <th className="px-4 py-3 text-left font-medium">Status</th>
-              <th className="px-4 py-3 text-right font-medium w-10">Actions</th>
+              <th className="px-4 py-2.5 text-left">Account</th>
+              <th className="px-4 py-2.5 text-left">Broker</th>
+              <th className="px-4 py-2.5 text-right">Starting balance</th>
+              <th className="px-4 py-2.5 text-right">Current balance</th>
+              <th className="px-4 py-2.5 text-left">Status</th>
+              <th className="px-4 py-2.5 w-10"><span className="sr-only">Actions</span></th>
             </tr>
           </thead>
           <tbody className="divide-y">
             {accounts.map((account) => (
               <tr
                 key={account.id}
-                className="hover:bg-muted/30 transition-colors"
+                className="hover:bg-accent/60 transition-colors"
               >
-                <td className="px-4 py-3 font-medium">{account.name}</td>
+                <td className="px-4 py-3 text-[14px] font-semibold">{account.name}</td>
                 <td className="px-4 py-3 text-muted-foreground">
                   {account.broker}
                 </td>
-                <td className="px-4 py-3 text-right">
+                <td className="px-4 py-3 text-right text-muted-foreground">
                   ${Number(account.startingBalance).toLocaleString()}
                 </td>
-                <td className="px-4 py-3 text-right font-mono">
+                <td className="px-4 py-3 text-right text-[14px] font-semibold">
                   $
                   {account.currentBalance.toLocaleString(undefined, {
                     minimumFractionDigits: 2,
@@ -734,7 +739,7 @@ export function AccountsTable({ accounts }: { accounts: Account[] }) {
                 </td>
                 <td className="px-4 py-3">
                   <div className="flex gap-1 flex-wrap">
-                    {account.isMain && <Badge variant="default">Main</Badge>}
+                    {account.isMain && <Badge>Main</Badge>}
                     {account.isActive && (
                       <Badge variant="secondary">Active</Badge>
                     )}
@@ -743,8 +748,8 @@ export function AccountsTable({ accounts }: { accounts: Account[] }) {
                 <td className="px-4 py-3 text-right">
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button size="sm" variant="ghost" className="h-7 w-7 p-0">
-                        ···
+                      <Button size="icon-sm" variant="ghost" aria-label={`Actions for ${account.name}`}>
+                        <HugeiconsIcon icon={MoreHorizontalIcon} size={17} />
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent className="w-auto" align="end">
@@ -793,9 +798,9 @@ export function AccountsTable({ accounts }: { accounts: Account[] }) {
               <tr>
                 <td
                   colSpan={6}
-                  className="px-4 py-8 text-center text-muted-foreground"
+                  className="px-4 py-12 text-center text-muted-foreground"
                 >
-                  No accounts yet
+                  No accounts yet. Add the brokerage account you trade from to start logging.
                 </td>
               </tr>
             )}
@@ -909,7 +914,7 @@ export function AccountsTable({ accounts }: { accounts: Account[] }) {
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              className="bg-loss text-white hover:bg-loss/90"
               onClick={() => {
                 if (!deletingAccount) return;
                 deleteAccount(deletingAccount.id);

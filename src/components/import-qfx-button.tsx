@@ -194,7 +194,7 @@ export function ImportQfxButton({ accounts }: Props) {
               <div
                 className={cn(
                   'border-2 border-dashed rounded-lg p-10 text-center cursor-pointer transition-colors',
-                  isDragOver ? 'border-primary bg-primary/5' : 'hover:bg-muted/30',
+                  isDragOver ? 'border-primary bg-primary/5' : 'hover:bg-accent/60',
                 )}
                 onClick={() => fileRef.current?.click()}
                 onDragOver={(e) => { e.preventDefault(); setIsDragOver(true) }}
@@ -222,24 +222,24 @@ export function ImportQfxButton({ accounts }: Props) {
             <div className="space-y-4">
               {/* Summary chips */}
               <div className="flex items-center gap-3 text-xs">
-                <span className="rounded-full bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200 px-2.5 py-0.5 font-medium">
+                <span className="rounded-sm bg-info-soft text-info ring-1 ring-info/25 px-2.5 py-0.5 font-medium">
                   {opens.length} opens
                 </span>
-                <span className="rounded-full bg-rose-50 text-rose-700 ring-1 ring-rose-200 px-2.5 py-0.5 font-medium">
+                <span className="rounded-sm bg-secondary text-secondary-foreground ring-1 ring-border px-2.5 py-0.5 font-medium">
                   {closes.length} closes
                 </span>
                 {regularStocks.length > 0 && (
-                  <span className="rounded-full bg-blue-50 text-blue-700 ring-1 ring-blue-200 px-2.5 py-0.5 font-medium">
+                  <span className="rounded-sm bg-secondary text-secondary-foreground ring-1 ring-border px-2.5 py-0.5 font-medium">
                     {regularStocks.length} stocks
                   </span>
                 )}
                 {assignments.length > 0 && (
-                  <span className="rounded-full bg-violet-50 text-violet-700 ring-1 ring-violet-200 px-2.5 py-0.5 font-medium">
+                  <span className="rounded-sm bg-sidebar text-sidebar-foreground ring-1 ring-sidebar px-2.5 py-0.5 font-medium">
                     {assignments.length} assigned
                   </span>
                 )}
                 {parseErrors.length > 0 && (
-                  <span className="rounded-full bg-amber-50 text-amber-700 ring-1 ring-amber-200 px-2.5 py-0.5 font-medium">
+                  <span className="rounded-sm bg-warn-soft text-warn ring-1 ring-warn/30 px-2.5 py-0.5 font-medium">
                     {parseErrors.length} warnings
                   </span>
                 )}
@@ -247,7 +247,7 @@ export function ImportQfxButton({ accounts }: Props) {
 
               {/* Account selector */}
               <div className="space-y-1">
-                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Import into account</p>
+                <p className="sign-caps text-[11px] text-muted-foreground">Import into account</p>
                 <Select value={accountId} onValueChange={setAccountId}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select account" />
@@ -275,9 +275,9 @@ export function ImportQfxButton({ accounts }: Props) {
                 })
 
                 return (
-                  <div className="rounded-md border overflow-x-auto">
-                    <table className="w-full text-xs">
-                      <thead className="border-b bg-muted/50">
+                  <div className="rounded-md ring-1 ring-border relative overflow-x-auto">
+                    <table className="data-table w-full text-[13px]">
+                      <thead className="border-b bg-muted/60">
                         <tr>
                           <th className="px-3 py-2 text-left font-medium text-muted-foreground">Date</th>
                           <th className="px-3 py-2 text-left font-medium text-muted-foreground">Symbol</th>
@@ -292,20 +292,20 @@ export function ImportQfxButton({ accounts }: Props) {
                           if (tx._type === 'stock') {
                             const isBuy = tx.action === 'BUY'
                             return (
-                              <tr key={`s-${i}`} className="hover:bg-muted/30 transition-colors">
+                              <tr key={`s-${i}`} className="hover:bg-accent/60 transition-colors">
                                 <td className="px-3 py-1.5 tabular-nums text-muted-foreground">
                                   {new Date(tx.tradeDate + 'T12:00:00Z').toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' })}
                                 </td>
-                                <td className="px-3 py-1.5 font-mono">{tx.ticker}</td>
+                                <td className="px-3 py-1.5 font-mono text-[14px] font-semibold">{tx.ticker}</td>
                                 <td className="px-3 py-1.5">
                                   {tx.isAssignment ? (
-                                    <span className="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide ring-1 bg-violet-50 text-violet-700 ring-violet-200">
+                                    <span className="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide ring-1 bg-sidebar text-sidebar-foreground ring-sidebar">
                                       Assigned
                                     </span>
                                   ) : (
                                     <span className={cn(
                                       'inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide ring-1',
-                                      isBuy ? 'bg-blue-50 text-blue-700 ring-blue-200' : 'bg-muted/80 text-muted-foreground ring-border',
+                                      isBuy ? 'bg-info-soft text-info ring-info/25' : 'bg-muted/80 text-muted-foreground ring-border',
                                     )}>
                                       {isBuy ? 'Buy' : 'Sell'}
                                     </span>
@@ -318,7 +318,7 @@ export function ImportQfxButton({ accounts }: Props) {
                                 ) : (
                                   <td className={cn(
                                     'px-3 py-1.5 text-right tabular-nums font-medium',
-                                    tx.netTotal >= 0 ? 'text-emerald-600' : 'text-rose-600',
+                                    tx.netTotal >= 0 ? 'text-gain' : 'text-loss',
                                   )}>
                                     {tx.netTotal >= 0 ? '+' : ''}${Math.abs(tx.netTotal).toFixed(2)}
                                   </td>
@@ -330,17 +330,17 @@ export function ImportQfxButton({ accounts }: Props) {
                           const isOpen = tx.action === 'SELLTOOPEN' || tx.action === 'BUYTOOPEN'
                           const isShortOpen = tx.action === 'SELLTOOPEN'
                           return (
-                            <tr key={`o-${i}`} className="hover:bg-muted/30 transition-colors">
+                            <tr key={`o-${i}`} className="hover:bg-accent/60 transition-colors">
                               <td className="px-3 py-1.5 tabular-nums text-muted-foreground">
                                 {new Date(tx.tradeDate + 'T12:00:00Z').toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' })}
                               </td>
-                              <td className="px-3 py-1.5 font-mono">{tx.symbol}</td>
+                              <td className="px-3 py-1.5 font-mono text-[14px] font-semibold">{tx.symbol}</td>
                               <td className="px-3 py-1.5">
                                 <span className={cn(
                                   'inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide ring-1',
-                                  isShortOpen ? 'bg-emerald-50 text-emerald-700 ring-emerald-200' :
-                                  isOpen      ? 'bg-blue-50    text-blue-700    ring-blue-200'    :
-                                                'bg-rose-50    text-rose-700    ring-rose-200',
+                                  isShortOpen ? 'bg-gain-soft text-gain ring-gain/25' :
+                                  isOpen      ? 'bg-info-soft    text-info    ring-info/25'    :
+                                                'bg-loss-soft    text-loss    ring-loss/25',
                                 )}>
                                   {ACTION_LABEL[tx.action]}
                                 </span>
@@ -349,7 +349,7 @@ export function ImportQfxButton({ accounts }: Props) {
                               <td className="px-3 py-1.5 text-right tabular-nums">${tx.unitPrice.toFixed(2)}</td>
                               <td className={cn(
                                 'px-3 py-1.5 text-right tabular-nums font-medium',
-                                tx.netTotal >= 0 ? 'text-emerald-600' : 'text-rose-600',
+                                tx.netTotal >= 0 ? 'text-gain' : 'text-loss',
                               )}>
                                 {tx.netTotal >= 0 ? '+' : ''}${Math.abs(tx.netTotal).toFixed(2)}
                               </td>
@@ -384,7 +384,7 @@ export function ImportQfxButton({ accounts }: Props) {
               <div className="rounded-md border divide-y text-sm">
                 <div className="flex justify-between px-4 py-2.5">
                   <span className="text-muted-foreground">Trades created</span>
-                  <span className="font-semibold text-emerald-600">{result.created}</span>
+                  <span className="font-semibold text-gain">{result.created}</span>
                 </div>
                 <div className="flex justify-between px-4 py-2.5">
                   <span className="text-muted-foreground">Trades closed</span>
@@ -400,11 +400,11 @@ export function ImportQfxButton({ accounts }: Props) {
                   <div className="px-4 py-2.5 space-y-1">
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">No open match</span>
-                      <span className="font-semibold text-amber-600">{result.skipped.length}</span>
+                      <span className="font-semibold text-warn">{result.skipped.length}</span>
                     </div>
                     <div className="flex flex-wrap gap-1 pt-0.5">
                       {result.skipped.map((sym) => (
-                        <span key={sym} className="font-mono text-[10px] bg-amber-50 text-amber-700 ring-1 ring-amber-200 rounded px-1.5 py-0.5">{sym}</span>
+                        <span key={sym} className="font-mono text-[10px] bg-warn-soft text-warn ring-1 ring-warn/30 rounded px-1.5 py-0.5">{sym}</span>
                       ))}
                     </div>
                   </div>

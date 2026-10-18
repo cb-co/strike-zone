@@ -2,6 +2,8 @@
 
 import { useState } from 'react'
 import { formatCurrency } from '@/lib/format'
+import { HugeiconsIcon } from '@hugeicons/react'
+import { ArrowDown01Icon } from '@hugeicons/core-free-icons'
 
 type ClosedTrade = {
   id: string
@@ -50,42 +52,73 @@ export function ByTickerTab({ trades }: Props) {
     })
   }
 
+  const fmtDate = (d: Date | null) =>
+    d ? new Date(d).toLocaleDateString('en-US', { timeZone: 'UTC', month: 'short', day: 'numeric', year: 'numeric' }) : '—'
+
+  if (stats.length === 0) {
+    return <p className="rounded-lg ring-1 ring-border bg-card px-4 py-12 text-center text-muted-foreground">No closed trades yet.</p>
+  }
+
   return (
-    <div className="rounded-md border divide-y">
-      {stats.map((s) => (
-        <div key={s.ticker}>
-          <div
-            className="flex items-center justify-between px-4 py-3 cursor-pointer hover:bg-muted/30"
-            onClick={() => toggle(s.ticker)}
-          >
-            <span className="font-mono font-medium w-24">{s.ticker}</span>
-            <span className="text-sm text-muted-foreground w-24">{s.count} trades</span>
-            <span className="text-sm w-24">{s.count > 0 ? Math.round((s.wins / s.count) * 100) : 0}% win</span>
-            <span className={`font-medium w-32 text-right ${s.netPnl >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-              {s.netPnl > 0 ? '+' : ''}{formatCurrency(s.netPnl)}
-            </span>
-            <span className="text-sm text-muted-foreground w-20 text-right">{s.avgDays}d avg</span>
-            <span className="ml-4 text-muted-foreground">{expanded.has(s.ticker) ? '▲' : '▼'}</span>
-          </div>
-          {expanded.has(s.ticker) && (
-            <div className="bg-muted/20 px-4 py-2 space-y-1">
-              {[...s.trades].sort((a, b) => {
-                const aDate = a.closeDate ? new Date(a.closeDate).getTime() : 0
-                const bDate = b.closeDate ? new Date(b.closeDate).getTime() : 0
-                return bDate - aDate
-              }).map((t) => (
-                <div key={t.id} className="flex items-center gap-4 text-sm py-1">
-                  <span className="text-muted-foreground w-24">{t.closeDate ? new Date(t.closeDate).toLocaleDateString('en-US', { timeZone: 'UTC', month: 'short', day: 'numeric', year: 'numeric' }) : '—'}</span>
-                  <span className={`font-medium ${(t.netPnl ?? 0) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                    {(t.netPnl ?? 0) > 0 ? '+' : ''}{formatCurrency(t.netPnl ?? 0)}
-                  </span>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      ))}
-      {stats.length === 0 && <p className="px-4 py-8 text-center text-sm text-muted-foreground">No closed trades</p>}
+    <div className="rounded-lg ring-1 ring-border bg-card relative overflow-x-auto">
+      <table className="data-table w-full text-[13px]">
+        <thead className="border-b bg-muted/60">
+          <tr>
+            <th className="px-4 py-2.5 text-left">Ticker</th>
+            <th className="px-4 py-2.5 text-right">Trades</th>
+            <th className="px-4 py-2.5 text-right">Win rate</th>
+            <th className="px-4 py-2.5 text-right">Net P&amp;L</th>
+            <th className="px-4 py-2.5 text-right">Avg. days held</th>
+            <th className="w-10"><span className="sr-only">Expand</span></th>
+          </tr>
+        </thead>
+        {stats.map((s) => {
+          const open = expanded.has(s.ticker)
+          return (
+            <tbody key={s.ticker} className="border-b last:border-b-0">
+              <tr
+                className="cursor-pointer hover:bg-accent/60 transition-colors"
+                onClick={() => toggle(s.ticker)}
+              >
+                <td className="px-4 py-2.5">
+                  <button
+                    type="button"
+                    aria-expanded={open}
+                    className="font-mono text-[15px] font-semibold tracking-[0.02em] focus-visible:outline-2 focus-visible:outline-ring rounded-sm"
+                  >
+                    {s.ticker}
+                  </button>
+                </td>
+                <td className="px-4 py-2.5 text-right text-muted-foreground">{s.count}</td>
+                <td className="px-4 py-2.5 text-right">{s.count > 0 ? Math.round((s.wins / s.count) * 100) : 0}%</td>
+                <td className={`px-4 py-2.5 text-right font-semibold ${s.netPnl >= 0 ? 'text-gain' : 'text-loss'}`}>
+                  {s.netPnl > 0 ? '+' : ''}{formatCurrency(s.netPnl)}
+                </td>
+                <td className="px-4 py-2.5 text-right text-muted-foreground">{s.avgDays}d</td>
+                <td className="pr-3 text-right text-muted-foreground">
+                  <HugeiconsIcon icon={ArrowDown01Icon} size={16} className={`inline transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
+                </td>
+              </tr>
+              {open &&
+                [...s.trades]
+                  .sort((a, b) => {
+                    const aDate = a.closeDate ? new Date(a.closeDate).getTime() : 0
+                    const bDate = b.closeDate ? new Date(b.closeDate).getTime() : 0
+                    return bDate - aDate
+                  })
+                  .map((t) => (
+                    <tr key={t.id} className="bg-muted/40 text-[13px]">
+                      <td className="pl-8 pr-4 py-1.5 text-muted-foreground" colSpan={3}>Closed {fmtDate(t.closeDate)}</td>
+                      <td className={`px-4 py-1.5 text-right ${(t.netPnl ?? 0) >= 0 ? 'text-gain' : 'text-loss'}`}>
+                        {(t.netPnl ?? 0) > 0 ? '+' : ''}{formatCurrency(t.netPnl ?? 0)}
+                      </td>
+                      <td colSpan={2} />
+                    </tr>
+                  ))}
+            </tbody>
+          )
+        })}
+      </table>
     </div>
   )
 }
